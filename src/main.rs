@@ -33,7 +33,8 @@ fn main() {
     };
     match token {
         CodeResponse { ref code, .. } => {
-            auth_ops.fetch_token(code).unwrap();
+            let token = auth_ops.fetch_token(code).unwrap();
+            println!("{:?}", token);
         }
         _ => {}
     }

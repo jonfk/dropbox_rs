@@ -1,11 +1,14 @@
 
 use serde_urlencoded;
+use serde_json;
 use reqwest::{Url, Client};
 use reqwest::Error;
 use std::collections::HashMap;
 use std::io::{self, Write};
 
 use dropbox::auth::AuthorizationResponse::{CodeResponse, TokenResponse};
+
+use dropbox::errors::*;
 
 pub fn build_authorization_uri(client_id: &str, redirect_uri: &str, response_type: &str) -> String {
     let mut url = Url::parse("https://www.dropbox.com/oauth2/authorize").unwrap();
@@ -24,10 +27,10 @@ pub enum AuthorizationResponse {
         token_type: String,
         uid: String,
         account_id: String,
-        team_id: String,
-        state: String,
+        team_id: Option<String>,
+        state: Option<String>,
     },
-    CodeResponse { code: String, state: String },
+    CodeResponse { code: String, state: Option<String> },
 }
 
 pub fn parse_authorization_response(redirect_uri: &str) -> Option<AuthorizationResponse> {
@@ -43,10 +46,11 @@ pub fn parse_authorization_response(redirect_uri: &str) -> Option<AuthorizationR
         pairs
     });
 
+    // TODO deserialize with serde_urlencoded
     if query_pairs.contains_key("code") {
         Some(CodeResponse {
             code: query_pairs.remove("code").unwrap(),
-            state: query_pairs.remove("state").unwrap_or("".to_owned()),
+            state: query_pairs.remove("state"),
         })
     } else if query_pairs.contains_key("access_token") {
         Some(TokenResponse {
@@ -54,8 +58,8 @@ pub fn parse_authorization_response(redirect_uri: &str) -> Option<AuthorizationR
             token_type: query_pairs.remove("token_type").unwrap(),
             uid: query_pairs.remove("uid").unwrap_or("".to_owned()),
             account_id: query_pairs.remove("account_id").unwrap_or("".to_owned()),
-            team_id: query_pairs.remove("team_id").unwrap_or("".to_owned()),
-            state: query_pairs.remove("state").unwrap_or("".to_owned()),
+            team_id: query_pairs.remove("team_id"),
+            state: query_pairs.remove("state"),
         })
     } else {
         None
@@ -92,26 +96,27 @@ pub struct AuthOperations {
 }
 
 impl AuthOperations {
-    pub fn fetch_token(&self, code: &str) -> Result<(), Error> {
-        let tokenReq = AuthTokenRequest {
+    pub fn fetch_token(&self, code: &str) -> Result<AuthorizationResponse> {
+        let token_req = AuthTokenRequest {
             code: String::from(code),
             grant_type: String::from("authorization_code"),
             client_id: self.client_id.clone(),
             client_secret: self.client_secret.clone(),
             redirect_uri: self.redirect_uri.clone(),
         };
-        let mut url = Url::parse("https://api.dropboxapi.com/oauth2/token").unwrap();
-        url.set_query(Some(serde_urlencoded::to_string(tokenReq).unwrap().as_str()));
+        let mut url = Url::parse("https://api.dropboxapi.com/oauth2/token")?;
+        url.set_query(Some(serde_urlencoded::to_string(token_req)?.as_str()));
         println!("{}", url);
 
         let client = Client::new()?;
         let mut res = client.post(url)?
             .send()?;
         let mut buf = Vec::with_capacity(10000);
-        io::copy(&mut res, &mut buf).unwrap();
+        io::copy(&mut res, &mut buf)?;
 
         println!("{:?}", res);
-        println!("{:?}", String::from_utf8(buf).unwrap());
-        Ok(())
+        println!("{:?}", String::from_utf8(buf.clone())?);
+
+        Ok(serde_json::from_slice(&buf)?)
     }
 }
