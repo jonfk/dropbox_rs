@@ -14,6 +14,18 @@ pub mod errors {
     }
 }
 
+use dropbox::paper::PaperOperations;
+
 pub struct Dropbox {
     access_token: String,
+    pub paper_ops: PaperOperations,
+}
+
+impl Dropbox {
+    pub fn new(access_token: &str) -> Dropbox {
+        Dropbox {
+            access_token: String::from(access_token),
+            paper_ops: PaperOperations::new(access_token),
+        }
+    }
 }

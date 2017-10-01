@@ -15,6 +15,8 @@ mod dropbox;
 use dropbox::auth::{run_authorization_flow, AuthOperations};
 use dropbox::auth::AuthorizationResponse::{CodeResponse, TokenResponse};
 use dropbox::auth::AuthTokenRequest;
+use dropbox::Dropbox;
+use dropbox::paper::{ListPaperDocsRequest, ListPaperDocsSortBy};
 
 use reqwest::{Url, Client};
 
@@ -24,18 +26,24 @@ static REDIRECT_URI: &'static str = "http://localhost";
 
 fn main() {
 
-    let token = run_authorization_flow(CLIENT_ID, REDIRECT_URI, "code").unwrap();
+    let token = run_authorization_flow(CLIENT_ID, REDIRECT_URI, "token").unwrap();
     println!("{:?}", token);
-    let auth_ops = AuthOperations {
-        client_id: String::from(CLIENT_ID),
-        client_secret: String::from(CLIENT_SECRET),
-        redirect_uri: String::from(REDIRECT_URI),
-    };
+    let auth_ops = AuthOperations::new(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
     match token {
         CodeResponse { ref code, .. } => {
             let token = auth_ops.fetch_token(code).unwrap();
             println!("{:?}", token);
         }
-        _ => {}
+        TokenResponse { ref access_token, .. } => {
+            let api = Dropbox::new(access_token);
+            let list = api.paper_ops.list(&ListPaperDocsRequest {
+                filter_by: None,
+                sort_by: Some(ListPaperDocsSortBy::modified),
+                sort_order: None,
+                limit: 100,
+            });
+
+            println!("list : {:?}", list);
+        }
     }
 }

@@ -2,7 +2,6 @@
 use serde_urlencoded;
 use serde_json;
 use reqwest::{Url, Client};
-use reqwest::Error;
 use std::collections::HashMap;
 use std::io::{self, Write};
 
@@ -93,9 +92,18 @@ pub struct AuthOperations {
     pub client_id: String,
     pub client_secret: String,
     pub redirect_uri: String,
+    _secret: (),
 }
 
 impl AuthOperations {
+    pub fn new(client_id: &str, client_secret: &str, redirect_uri: &str) -> AuthOperations {
+        AuthOperations {
+            client_id: String::from(client_id),
+            client_secret: String::from(client_secret),
+            redirect_uri: String::from(redirect_uri),
+            _secret: (),
+        }
+    }
     pub fn fetch_token(&self, code: &str) -> Result<AuthorizationResponse> {
         let token_req = AuthTokenRequest {
             code: String::from(code),
@@ -106,7 +114,6 @@ impl AuthOperations {
         };
         let mut url = Url::parse("https://api.dropboxapi.com/oauth2/token")?;
         url.set_query(Some(serde_urlencoded::to_string(token_req)?.as_str()));
-        println!("{}", url);
 
         let client = Client::new()?;
         let mut res = client.post(url)?
