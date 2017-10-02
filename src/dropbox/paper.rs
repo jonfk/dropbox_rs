@@ -6,6 +6,7 @@ use serde_json;
 use std::io;
 
 use dropbox::errors::*;
+use dropbox::response::Response;
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 const BUFFER_SIZE: usize = 100000;
@@ -18,7 +19,7 @@ impl PaperOperations {
     pub fn new(access_token: &str) -> PaperOperations {
         PaperOperations { access_token: String::from(access_token) }
     }
-    pub fn list(&self, request: &ListPaperDocsRequest) -> Result<ListPaperDocsResponse> {
+    pub fn list(&self, request: &ListPaperDocsRequest) -> Result<Response<ListPaperDocsResponse>> {
         let url = Url::parse(BASE_URL)?
             .join("list")?;
         println!("{}", url);
@@ -30,11 +31,7 @@ impl PaperOperations {
             .send()?;
 
         if res.status().is_success() {
-            let mut buf = Vec::with_capacity(BUFFER_SIZE);
-            io::copy(&mut res, &mut buf)?;
-            println!("{}", String::from_utf8(buf.clone())?);
-
-            Ok(serde_json::from_slice(&buf)?)
+            Ok(Response::try_from(res)?)
         } else {
             bail!(build_error(res)?)
         }

@@ -3,6 +3,7 @@ const BUFFER_SIZE: usize = 100000;
 
 pub mod auth;
 pub mod paper;
+pub mod response;
 pub mod errors {
     use super::BUFFER_SIZE;
 
