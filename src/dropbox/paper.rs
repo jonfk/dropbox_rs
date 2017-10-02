@@ -29,11 +29,15 @@ impl PaperOperations {
             .json(request)?
             .send()?;
 
-        let mut buf = Vec::with_capacity(BUFFER_SIZE);
-        io::copy(&mut res, &mut buf)?;
-        println!("{}", String::from_utf8(buf.clone())?);
+        if res.status().is_success() {
+            let mut buf = Vec::with_capacity(BUFFER_SIZE);
+            io::copy(&mut res, &mut buf)?;
+            println!("{}", String::from_utf8(buf.clone())?);
 
-        Ok(serde_json::from_slice(&buf)?)
+            Ok(serde_json::from_slice(&buf)?)
+        } else {
+            bail!(build_error(res)?)
+        }
     }
 }
 
