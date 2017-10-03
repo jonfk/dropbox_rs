@@ -5,8 +5,8 @@ use serde_json;
 
 use std::io;
 
-use dropbox::errors::*;
-use dropbox::response::Response;
+use errors::*;
+use response::Response;
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 const BUFFER_SIZE: usize = 100000;

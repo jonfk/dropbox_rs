@@ -1,5 +1,5 @@
 [package]
-name = "dropbox-paper-backup"
+name = "dropbox_rs"
 version = "0.1.0"
 authors = ["Jonathan Fok kan <jfokkan@gmail.com>"]
 

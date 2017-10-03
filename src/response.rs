@@ -5,11 +5,7 @@ use reqwest::StatusCode;
 use reqwest::header::Headers;
 use reqwest::Response as ReqwestResponse;
 
-use std::io;
-
-use dropbox::errors::*;
-
-const BUFFER_SIZE: usize = 100000;
+use errors::*;
 
 #[derive(Debug)]
 pub struct Response<T: DeserializeOwned> {

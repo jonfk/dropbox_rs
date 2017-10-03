@@ -5,9 +5,9 @@ use reqwest::{Url, Client};
 use std::collections::HashMap;
 use std::io::{self, Write};
 
-use dropbox::auth::AuthorizationResponse::{CodeResponse, TokenResponse};
+use auth::AuthorizationResponse::{CodeResponse, TokenResponse};
 
-use dropbox::errors::*;
+use errors::*;
 
 pub fn build_authorization_uri(client_id: &str, redirect_uri: &str, response_type: &str) -> String {
     let mut url = Url::parse("https://www.dropbox.com/oauth2/authorize").unwrap();
