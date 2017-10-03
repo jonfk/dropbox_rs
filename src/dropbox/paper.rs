@@ -19,7 +19,8 @@ impl PaperOperations {
     pub fn new(access_token: &str) -> PaperOperations {
         PaperOperations { access_token: String::from(access_token) }
     }
-    pub fn list(&self, request: &ListPaperDocsRequest) -> Result<Response<ListPaperDocsResponse>> {
+
+    pub fn list(&self, request: &ListPaperDocsArgs) -> Result<Response<ListPaperDocsResponse>> {
         let url = Url::parse(BASE_URL)?
             .join("list")?;
         println!("{}", url);
@@ -30,11 +31,23 @@ impl PaperOperations {
             .json(request)?
             .send()?;
 
-        if res.status().is_success() {
-            Ok(Response::try_from(res)?)
-        } else {
-            bail!(build_error(res)?)
-        }
+        Ok(Response::try_from(res)?)
+    }
+
+    pub fn list_continue(&self,
+                         request: &ListPaperDocsContinueArgs)
+                         -> Result<Response<ListPaperDocsResponse>> {
+        let url = Url::parse(BASE_URL)?
+            .join("list/")?
+            .join("continue")?;
+        println!("{}", url);
+
+        let client = Client::new()?;
+        let mut res = client.post(url)?
+            .header(Authorization(Bearer { token: self.access_token.clone() }))
+            .json(request)?
+            .send()?;
+        Ok(Response::try_from(res)?)
     }
 }
 
@@ -61,7 +74,7 @@ pub enum ListPaperDocsSortOrder {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListPaperDocsRequest {
+pub struct ListPaperDocsArgs {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filter_by: Option<ListPaperDocsFilterBy>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -73,13 +86,18 @@ pub struct ListPaperDocsRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListPaperDocsResponse {
-    doc_ids: Vec<String>,
-    cursor: Cursor,
-    has_more: bool,
+    pub doc_ids: Vec<String>,
+    pub cursor: Cursor,
+    pub has_more: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Cursor {
-    value: String,
-    expiration: String,
+pub struct Cursor {
+    pub value: String,
+    pub expiration: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListPaperDocsContinueArgs {
+    pub cursor: String,
 }

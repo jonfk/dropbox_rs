@@ -13,9 +13,9 @@ const BUFFER_SIZE: usize = 100000;
 
 #[derive(Debug)]
 pub struct Response<T: DeserializeOwned> {
-    body: T,
-    status: StatusCode,
-    headers: Headers,
+    pub body: T,
+    pub status: StatusCode,
+    pub headers: Headers,
 }
 
 // TODO when TryFrom is stabilized
@@ -27,11 +27,15 @@ impl<T> Response<T>
         let status = resp.status();
         let headers = resp.headers().clone();
 
-        let body = serde_json::from_reader(resp)?;
-        Ok(Response {
-            body: body,
-            status: status,
-            headers: headers,
-        })
+        if status.is_success() {
+            let body = serde_json::from_reader(resp)?;
+            Ok(Response {
+                body: body,
+                status: status,
+                headers: headers,
+            })
+        } else {
+            bail!(build_error(resp)?)
+        }
     }
 }

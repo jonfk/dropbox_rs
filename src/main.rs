@@ -16,7 +16,7 @@ use dropbox::auth::AuthOperations;
 use dropbox::auth::AuthorizationResponse::{CodeResponse, TokenResponse};
 use dropbox::auth::{AuthTokenRequest, AuthorizationResponse};
 use dropbox::Dropbox;
-use dropbox::paper::{ListPaperDocsRequest, ListPaperDocsSortBy};
+use dropbox::paper::{ListPaperDocsArgs, ListPaperDocsSortBy, ListPaperDocsContinueArgs};
 use dropbox::errors::*;
 
 use reqwest::{Url, Client};
@@ -75,14 +75,21 @@ fn run() -> Result<()> {
         }
         TokenResponse { ref access_token, .. } => {
             let api = Dropbox::new(access_token);
-            let list = api.paper_ops.list(&ListPaperDocsRequest {
-                filter_by: None,
-                sort_by: Some(ListPaperDocsSortBy::modified),
-                sort_order: None,
-                limit: 100,
-            });
+            let list = api.paper_ops
+                .list(&ListPaperDocsArgs {
+                    filter_by: None,
+                    sort_by: Some(ListPaperDocsSortBy::modified),
+                    sort_order: None,
+                    limit: 100,
+                })?
+                .body;
 
             println!("list : {:?}", list);
+
+            let list_continue = api.paper_ops
+                .list_continue(&ListPaperDocsContinueArgs { cursor: list.cursor.value })?;
+            println!("\nlist continue: {:?}", list_continue);
+
             Ok(())
         }
     }
