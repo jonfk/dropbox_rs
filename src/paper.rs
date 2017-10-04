@@ -1,54 +1,82 @@
 
-use reqwest::{Url, Client};
-use reqwest::header::{Authorization, Bearer};
 use serde_json;
+use reqwest::Url;
+use reqwest::header::{Authorization, Bearer};
+use reqwest::Body;
 
 use std::io;
 
+use super::Dropbox;
 use errors::*;
-use response::Response;
+use http::Response;
+use http::Client;
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
-const BUFFER_SIZE: usize = 100000;
 
-pub struct PaperOperations {
-    access_token: String,
+pub fn list<T: Client>(client: &T,
+                       request: &ListPaperDocsArgs)
+                       -> Result<Response<ListPaperDocsResponse>> {
+    let url = Url::parse(BASE_URL)?
+        .join("list")?;
+    println!("{}", url);
+
+    client.rpc_request(url, request)
 }
 
-impl PaperOperations {
-    pub fn new(access_token: &str) -> PaperOperations {
-        PaperOperations { access_token: String::from(access_token) }
-    }
+pub fn list_continue<T: Client>(client: &T,
+                                request: &ListPaperDocsContinueArgs)
+                                -> Result<Response<ListPaperDocsResponse>> {
+    let url = Url::parse(BASE_URL)?
+        .join("list/")?
+        .join("continue")?;
+    println!("{}", url);
 
-    pub fn list(&self, request: &ListPaperDocsArgs) -> Result<Response<ListPaperDocsResponse>> {
-        let url = Url::parse(BASE_URL)?
-            .join("list")?;
-        println!("{}", url);
+    client.rpc_request(url, request)
+}
 
-        let client = Client::new()?;
-        let mut res = client.post(url)?
-            .header(Authorization(Bearer { token: self.access_token.clone() }))
-            .json(request)?
-            .send()?;
+pub fn archive<T: Client>(client: &T, doc_id: &str) -> Result<Response<()>> {
+    let url = Url::parse(BASE_URL)?
+        .join("archive")?;
+    println!("{}", url);
+    let request = RefPaperDoc { doc_id: doc_id.to_owned() };
 
-        Ok(Response::try_from(res)?)
-    }
+    client.rpc_request(url, request)
+}
 
-    pub fn list_continue(&self,
-                         request: &ListPaperDocsContinueArgs)
-                         -> Result<Response<ListPaperDocsResponse>> {
-        let url = Url::parse(BASE_URL)?
-            .join("list/")?
-            .join("continue")?;
-        println!("{}", url);
+pub fn create<T: Client, C: Into<Body>>(client: &T,
+                                        request: &PaperDocCreateArgs,
+                                        content: C)
+                                        -> Result<Response<PaperDocCreateUpdateResult>> {
 
-        let client = Client::new()?;
-        let mut res = client.post(url)?
-            .header(Authorization(Bearer { token: self.access_token.clone() }))
-            .json(request)?
-            .send()?;
-        Ok(Response::try_from(res)?)
-    }
+    let url = Url::parse(BASE_URL)?
+        .join("create")?;
+    println!("{}", url);
+
+    client.content_upload_request(url, request, content)
+}
+
+/**
+ * archive
+ **/
+#[derive(Debug,Serialize,Deserialize)]
+pub struct RefPaperDoc {
+    doc_id: String,
+}
+
+/**
+ * create
+ **/
+#[derive(Debug,Serialize,Deserialize)]
+pub struct PaperDocCreateArgs {
+    import_format: String,
+    parent_folder_id: Option<String>,
+}
+
+#[derive(Debug,Serialize,Deserialize)]
+pub struct PaperDocCreateUpdateResult {
+    doc_id: String,
+    revision: i64,
+    title: String,
 }
 
 /**

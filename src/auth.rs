@@ -109,8 +109,8 @@ impl AuthOperations {
         let mut url = Url::parse("https://api.dropboxapi.com/oauth2/token")?;
         url.set_query(Some(serde_urlencoded::to_string(token_req)?.as_str()));
 
-        let client = Client::new()?;
-        let mut res = client.post(url)?
+        let client = Client::new();
+        let mut res = client.post(url)
             .send()?;
         let mut buf = Vec::with_capacity(10000);
         io::copy(&mut res, &mut buf)?;
