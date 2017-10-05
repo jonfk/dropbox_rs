@@ -5,7 +5,7 @@ use serde::ser::Serialize;
 use serde_json;
 use reqwest::{Url, StatusCode, Body};
 use reqwest::Client as ReqwestClient;
-use reqwest::header::{Headers, Authorization, Bearer};
+use reqwest::header::{Headers, Authorization, Bearer, ContentType};
 use reqwest::Response as ReqwestResponse;
 
 use super::Dropbox;
@@ -89,7 +89,9 @@ impl Client for Dropbox {
         let client = ReqwestClient::new();
         let res = client.post(url)
             .header(Authorization(Bearer { token: self.access_token().to_owned() }))
+            .header(ContentType::octet_stream())
             .header(DropboxAPIArg(request_body))
+            .body(contents)
             .send()?;
 
         Ok(Response::try_from(res)?)

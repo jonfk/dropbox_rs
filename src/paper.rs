@@ -1,12 +1,7 @@
 
-use serde_json;
 use reqwest::Url;
-use reqwest::header::{Authorization, Bearer};
 use reqwest::Body;
 
-use std::io;
-
-use super::Dropbox;
 use errors::*;
 use http::Response;
 use http::Client;
@@ -60,7 +55,7 @@ pub fn create<T: Client, C: Into<Body>>(client: &T,
  **/
 #[derive(Debug,Serialize,Deserialize)]
 pub struct RefPaperDoc {
-    doc_id: String,
+    pub doc_id: String,
 }
 
 /**
@@ -68,8 +63,17 @@ pub struct RefPaperDoc {
  **/
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct PaperDocCreateArgs {
-    import_format: String,
-    parent_folder_id: Option<String>,
+    pub import_format: ImportFormat,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_folder_id: Option<String>,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ImportFormat {
+    Html,
+    Markdown,
+    PlainText,
 }
 
 #[derive(Debug,Serialize,Deserialize)]
@@ -83,22 +87,25 @@ pub struct PaperDocCreateUpdateResult {
  * List
  **/
 #[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ListPaperDocsFilterBy {
-    docs_accessed,
-    docs_created,
+    DocsAccessed,
+    DocsCreated,
 }
 
 #[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ListPaperDocsSortBy {
-    accessed,
-    modified,
-    created,
+    Accessed,
+    Modified,
+    Created,
 }
 
 #[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ListPaperDocsSortOrder {
-    ascending,
-    descending,
+    Ascending,
+    Descending,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
