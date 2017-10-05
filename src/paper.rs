@@ -52,7 +52,7 @@ pub fn create<T: Client, C: Into<Body>>(client: &T,
         .join("create")?;
     println!("{}", url);
 
-    client.content_upload_request(url, request, content)
+    client.content_upload_request(url, request.clone(), content)
 }
 
 /**
@@ -66,7 +66,7 @@ pub struct RefPaperDoc {
 /**
  * create
  **/
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct PaperDocCreateArgs {
     import_format: String,
     parent_folder_id: Option<String>,

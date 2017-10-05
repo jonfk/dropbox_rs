@@ -90,7 +90,6 @@ impl Client for Dropbox {
         let res = client.post(url)
             .header(Authorization(Bearer { token: self.access_token().to_owned() }))
             .header(DropboxAPIArg(request_body))
-            .json(&request_body)
             .send()?;
 
         Ok(Response::try_from(res)?)

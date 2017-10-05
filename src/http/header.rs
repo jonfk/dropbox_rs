@@ -1,4 +1,5 @@
 
+use std::fmt;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use serde_json;
@@ -7,8 +8,8 @@ use reqwest::header::Formatter;
 use reqwest::header::Raw;
 use hyper::Error as HyperError;
 
-#[derive(Debug, Clone, Copy)]
-pub struct DropboxAPIArg<D: DeserializeOwned + Serialize + Sync + Clone + Send>(pub D);
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub struct DropboxAPIArg<D>(pub D);
 
 impl<D: DeserializeOwned + Serialize + Sync + Clone + Send + 'static> Header for DropboxAPIArg<D> {
     fn header_name() -> &'static str {
@@ -20,7 +21,13 @@ impl<D: DeserializeOwned + Serialize + Sync + Clone + Send + 'static> Header for
         Ok(DropboxAPIArg(serde_json::from_slice(&header_content).map_err(|_| HyperError::Header)?))
     }
     fn fmt_header(&self, f: &mut Formatter) -> ::std::fmt::Result {
+        f.fmt_line(self)
+    }
+}
+
+impl<D: Serialize + Sync + Clone + Send> fmt::Display for DropboxAPIArg<D> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let header = serde_json::to_string(&self.0).map_err(|_| ::std::fmt::Error)?;
-        write!(f, "{}", header)
+        f.write_str(&header)
     }
 }
