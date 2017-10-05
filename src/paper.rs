@@ -3,7 +3,7 @@ use reqwest::Url;
 use reqwest::Body;
 
 use errors::*;
-use http::Response;
+use http::{Response, ContentResponse};
 use http::Client;
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
@@ -50,6 +50,15 @@ pub fn create<T: Client, C: Into<Body>>(client: &T,
     client.content_upload_request(url, request.clone(), content)
 }
 
+pub fn download<T: Client>(client: &T,
+                           request: &PaperDocExport)
+                           -> Result<ContentResponse<PaperDocExportResult>> {
+    let url = Url::parse(BASE_URL)?
+        .join("download")?;
+    println!("{}", url);
+    client.content_download(url, request.clone())
+}
+
 /**
  * archive
  **/
@@ -78,9 +87,33 @@ pub enum ImportFormat {
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct PaperDocCreateUpdateResult {
-    doc_id: String,
-    revision: i64,
-    title: String,
+    pub doc_id: String,
+    pub revision: i64,
+    pub title: String,
+}
+
+/**
+ * download
+ **/
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct PaperDocExport {
+    pub doc_id: String,
+    pub export_format: ExportFormat,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportFormat {
+    Html,
+    Markdown,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct PaperDocExportResult {
+    pub owner: String,
+    pub title: String,
+    pub revision: i64,
+    pub mime_type: String,
 }
 
 /**
