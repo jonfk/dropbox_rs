@@ -1,5 +1,6 @@
 
 extern crate reqwest;
+#[macro_use]
 extern crate hyper;
 extern crate serde;
 extern crate serde_json;

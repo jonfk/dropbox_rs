@@ -12,7 +12,9 @@ use super::Dropbox;
 use errors::*;
 use errors::ErrorKind::HeaderNotFound;
 
-pub mod header;
+pub mod header {
+    header! { (DropboxAPIArg, "Dropbox-API-Arg") => [String] }
+}
 
 use self::header::DropboxAPIArg;
 
@@ -90,11 +92,11 @@ pub trait Client<C: Read> {
                                        request_body: T,
                                        contents: S)
                                        -> Result<Response<R>>
-        where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
+        where T: Serialize,
               S: Into<Body>,
               R: DeserializeOwned;
     fn content_download<T, R>(&self, url: Url, request: T) -> Result<ContentResponse<R, C>>
-        where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
+        where T: Serialize,
               R: DeserializeOwned,
               C: Read;
 }
@@ -122,7 +124,7 @@ impl Client<ReqwestResponse> for Dropbox {
                                        request_body: T,
                                        contents: S)
                                        -> Result<Response<R>>
-        where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
+        where T: Serialize,
               S: Into<Body>,
               R: DeserializeOwned
     {
@@ -130,7 +132,7 @@ impl Client<ReqwestResponse> for Dropbox {
         let res = client.post(url)
             .header(Authorization(Bearer { token: self.access_token().to_owned() }))
             .header(ContentType::octet_stream())
-            .header(DropboxAPIArg(request_body))
+            .header(DropboxAPIArg(serde_json::to_string(&request_body)?))
             .body(contents)
             .send()?;
 
@@ -141,14 +143,14 @@ impl Client<ReqwestResponse> for Dropbox {
                               url: Url,
                               request: T)
                               -> Result<ContentResponse<R, ReqwestResponse>>
-        where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
+        where T: Serialize,
               R: DeserializeOwned
     {
         let client = ReqwestClient::new();
         let res = client.post(url)
             .header(Authorization(Bearer { token: self.access_token().to_owned() }))
             .header(ContentType::octet_stream())
-            .header(DropboxAPIArg(request))
+            .header(DropboxAPIArg(serde_json::to_string(&request)?))
             .send()?;
 
         Ok(ContentResponse::try_from(res)?)
