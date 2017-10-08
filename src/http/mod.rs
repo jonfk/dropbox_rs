@@ -81,7 +81,6 @@ impl<T> ContentResponse<T, ReqwestResponse>
     }
 }
 
-// TODO fix type parameter T for content methods
 pub trait Client<C: Read> {
     fn access_token(&self) -> &str;
     fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
