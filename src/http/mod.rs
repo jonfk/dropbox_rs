@@ -47,17 +47,17 @@ impl<T> Response<T>
     }
 }
 
-pub struct ContentResponse<T> {
+pub struct ContentResponse<T, C: Read> {
     pub body: T,
-    pub content: Box<Read>,
+    pub content: C,
     pub status: StatusCode,
     pub headers: Headers,
 }
 
-impl<T> ContentResponse<T>
+impl<T> ContentResponse<T, ReqwestResponse>
     where T: DeserializeOwned
 {
-    pub fn try_from(resp: ReqwestResponse) -> Result<ContentResponse<T>> {
+    pub fn try_from(resp: ReqwestResponse) -> Result<ContentResponse<T, ReqwestResponse>> {
         let status = resp.status();
         let headers = resp.headers().clone();
 
@@ -69,7 +69,7 @@ impl<T> ContentResponse<T>
             let body = serde_json::from_slice(&raw_header_contents)?;
             Ok(ContentResponse {
                 body: body,
-                content: Box::new(resp),
+                content: resp,
                 status: status,
                 headers: headers.clone(),
             })
@@ -92,7 +92,10 @@ pub trait Client {
         where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
               S: Into<Body>,
               R: DeserializeOwned;
-    fn content_download<T, R>(&self, url: Url, request: T) -> Result<ContentResponse<R>>
+    fn content_download<T, R>(&self,
+                              url: Url,
+                              request: T)
+                              -> Result<ContentResponse<R, ReqwestResponse>>
         where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
               R: DeserializeOwned;
 }
@@ -135,7 +138,10 @@ impl Client for Dropbox {
         Ok(Response::try_from(res)?)
     }
 
-    fn content_download<T, R>(&self, url: Url, request: T) -> Result<ContentResponse<R>>
+    fn content_download<T, R>(&self,
+                              url: Url,
+                              request: T)
+                              -> Result<ContentResponse<R, ReqwestResponse>>
         where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
               R: DeserializeOwned
     {

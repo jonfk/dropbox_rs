@@ -1,6 +1,7 @@
 
 use reqwest::Url;
 use reqwest::Body;
+use reqwest::Response as ReqwestResponse;
 
 use errors::*;
 use http::{Response, ContentResponse};
@@ -52,7 +53,7 @@ pub fn create<T: Client, C: Into<Body>>(client: &T,
 
 pub fn download<T: Client>(client: &T,
                            request: &PaperDocExport)
-                           -> Result<ContentResponse<PaperDocExportResult>> {
+                           -> Result<ContentResponse<PaperDocExportResult, ReqwestResponse>> {
     let url = Url::parse(BASE_URL)?
         .join("download")?;
     println!("{}", url);

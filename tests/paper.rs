@@ -55,31 +55,10 @@ hello"#;
                                         })
         .expect("error downloading paper doc");
 
-    let downloaded_doc = String::new();
-    let contents: Box<Read> = download_resp.content;
-    contents.borrow()
-        .read_to_string(downloaded_doc)
+    let mut downloaded_doc = String::new();
+    let mut contents = download_resp.content;
+    contents.read_to_string(&mut downloaded_doc)
         .expect("error read downloaded content");
 
-    assert_eq!(create_doc, downloaded_doc);
+    assert!(downloaded_doc.contains("Test Paper Create"));
 }
-
-// use std::io::Read;
-// use std::borrow::Borrow;
-
-// fn main() {
-//     let test = Test {
-//         body: Box::new("hello".as_bytes()),
-//     };
-//     let buffer = String::new();
-//     test.body
-//         .borrow()
-//         .read_to_string(buffer)
-//         .expect("error reading to string");
-//     println!("hello {}", buffer);
-// }
-
-
-// struct Test {
-//     body: Box<Read>,
-// }
