@@ -1,3 +1,4 @@
+use std::io::Read;
 
 use reqwest::Url;
 use reqwest::Body;
@@ -5,13 +6,13 @@ use reqwest::Response as ReqwestResponse;
 
 use errors::*;
 use http::{Response, ContentResponse};
-use http::Client;
+use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 
-pub fn list<T: Client<ReqwestResponse>>(client: &T,
-                                        request: &ListPaperDocsArgs)
-                                        -> Result<Response<ListPaperDocsResponse>> {
+pub fn list<T: RPCClient>(client: &T,
+                          request: &ListPaperDocsArgs)
+                          -> Result<Response<ListPaperDocsResponse>> {
     let url = Url::parse(BASE_URL)?
         .join("list")?;
     println!("{}", url);
@@ -19,9 +20,9 @@ pub fn list<T: Client<ReqwestResponse>>(client: &T,
     client.rpc_request(url, request)
 }
 
-pub fn list_continue<T: Client<ReqwestResponse>>(client: &T,
-                                                 request: &ListPaperDocsContinueArgs)
-                                                 -> Result<Response<ListPaperDocsResponse>> {
+pub fn list_continue<T: RPCClient>(client: &T,
+                                   request: &ListPaperDocsContinueArgs)
+                                   -> Result<Response<ListPaperDocsResponse>> {
     let url = Url::parse(BASE_URL)?
         .join("list/")?
         .join("continue")?;
@@ -30,7 +31,7 @@ pub fn list_continue<T: Client<ReqwestResponse>>(client: &T,
     client.rpc_request(url, request)
 }
 
-pub fn archive<T: Client<ReqwestResponse>>(client: &T, doc_id: &str) -> Result<Response<()>> {
+pub fn archive<T: RPCClient>(client: &T, doc_id: &str) -> Result<Response<()>> {
     let url = Url::parse(BASE_URL)?
         .join("archive")?;
     println!("{}", url);
@@ -39,7 +40,7 @@ pub fn archive<T: Client<ReqwestResponse>>(client: &T, doc_id: &str) -> Result<R
     client.rpc_request(url, request)
 }
 
-pub fn create<T: Client<ReqwestResponse>, C: Into<Body>>
+pub fn create<T: ContentUploadClient, C: Into<Body>>
     (client: &T,
      request: &PaperDocCreateArgs,
      content: C)
@@ -52,10 +53,12 @@ pub fn create<T: Client<ReqwestResponse>, C: Into<Body>>
     client.content_upload_request(url, request.clone(), content)
 }
 
-pub fn download<T: Client<ReqwestResponse>>
+pub fn download<C, T: ContentDownloadClient<C>>
     (client: &T,
      request: &PaperDocExport)
-     -> Result<ContentResponse<PaperDocExportResult, ReqwestResponse>> {
+     -> Result<ContentResponse<PaperDocExportResult, C>>
+    where C: Read
+{
     let url = Url::parse(BASE_URL)?
         .join("download")?;
     println!("{}", url);

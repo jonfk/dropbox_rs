@@ -81,30 +81,25 @@ impl<T> ContentResponse<T, ReqwestResponse>
     }
 }
 
-pub trait Client<C: Read> {
+pub trait HasAccessToken {
     fn access_token(&self) -> &str;
-    fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
-        where T: Serialize,
-              R: DeserializeOwned;
-    fn content_upload_request<T, S, R>(&self,
-                                       url: Url,
-                                       request_body: T,
-                                       contents: S)
-                                       -> Result<Response<R>>
-        where T: Serialize,
-              S: Into<Body>,
-              R: DeserializeOwned;
-    fn content_download<T, R>(&self, url: Url, request: T) -> Result<ContentResponse<R, C>>
-        where T: Serialize,
-              R: DeserializeOwned,
-              C: Read;
 }
 
-impl Client<ReqwestResponse> for Dropbox {
+impl HasAccessToken for Dropbox {
     fn access_token(&self) -> &str {
         self.access_token.as_ref()
     }
+}
 
+pub trait RPCClient {
+    fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
+        where T: Serialize,
+              R: DeserializeOwned;
+}
+
+impl<C> RPCClient for C
+    where C: HasAccessToken
+{
     fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
         where T: Serialize,
               R: DeserializeOwned
@@ -117,7 +112,22 @@ impl Client<ReqwestResponse> for Dropbox {
 
         Ok(Response::try_from(res)?)
     }
+}
 
+pub trait ContentUploadClient {
+    fn content_upload_request<T, S, R>(&self,
+                                       url: Url,
+                                       request_body: T,
+                                       contents: S)
+                                       -> Result<Response<R>>
+        where T: Serialize,
+              S: Into<Body>,
+              R: DeserializeOwned;
+}
+
+impl<C> ContentUploadClient for C
+    where C: HasAccessToken
+{
     fn content_upload_request<T, S, R>(&self,
                                        url: Url,
                                        request_body: T,
@@ -137,7 +147,19 @@ impl Client<ReqwestResponse> for Dropbox {
 
         Ok(Response::try_from(res)?)
     }
+}
 
+pub trait ContentDownloadClient<C: Read> {
+    fn content_download<T, R>(&self, url: Url, request: T) -> Result<ContentResponse<R, C>>
+        where T: Serialize,
+              R: DeserializeOwned,
+              C: Read;
+}
+
+
+impl<C> ContentDownloadClient<ReqwestResponse> for C
+    where C: HasAccessToken
+{
     fn content_download<T, R>(&self,
                               url: Url,
                               request: T)
