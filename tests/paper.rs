@@ -2,9 +2,7 @@ extern crate dropbox_rs;
 extern crate reqwest;
 
 use std::env;
-use std::borrow::Borrow;
 use std::io::Read;
-use reqwest::Request;
 
 use dropbox_rs::paper;
 use dropbox_rs::Dropbox;
@@ -25,10 +23,9 @@ fn test_paper_list_and_continue() {
                            })
         .expect("error fetching list");
 
-    let list_continue =
-        paper::list_continue(&client,
-                             &ListPaperDocsContinueArgs { cursor: list.body.cursor.value })
-            .expect("error fetching list/continue");
+    paper::list_continue(&client,
+                         &ListPaperDocsContinueArgs { cursor: list.body.cursor.value })
+        .expect("error fetching list/continue");
 }
 
 #[test]

@@ -1,11 +1,9 @@
 
-use super::BUFFER_SIZE;
-
 pub use reqwest::StatusCode;
 use reqwest::Response;
 
-use std::io;
 use std::string::String;
+use std::io::Read;
 
 #[derive(Debug)]
 pub struct APIError {
@@ -41,12 +39,12 @@ impl From<APIError> for ErrorKind {
 }
 
 pub fn build_error(mut resp: Response) -> Result<ErrorKind> {
-    let mut buf = Vec::with_capacity(BUFFER_SIZE);
-    io::copy(&mut resp, &mut buf)?;
+    let mut error_body = String::new();
+    resp.read_to_string(&mut error_body)?;
 
     Ok(APIError {
             status: resp.status(),
-            body: String::from_utf8(buf)?,
+            body: error_body,
         }
         .into())
 }

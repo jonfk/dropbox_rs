@@ -63,7 +63,7 @@ impl<T> ContentResponse<T, ReqwestResponse>
 
         if status.is_success() {
             let raw_header = headers.get_raw(DROPBOX_API_RESULT)
-                .ok_or(HeaderNotFound(DROPBOX_API_RESULT.to_owned()))?;
+                .ok_or_else(|| HeaderNotFound(DROPBOX_API_RESULT.to_owned()))?;
             let raw_header_contents: Vec<u8> =
                 raw_header.into_iter().flat_map(|l| l.to_vec()).collect::<_>();
             let body = serde_json::from_slice(&raw_header_contents)?;

@@ -11,8 +11,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate error_chain;
 
-const BUFFER_SIZE: usize = 100000;
-
 pub mod auth;
 pub mod paper;
 pub mod errors;

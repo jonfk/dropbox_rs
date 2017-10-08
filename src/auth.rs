@@ -3,7 +3,6 @@ use serde_urlencoded;
 use serde_json;
 use reqwest::{Url, Client};
 use std::collections::HashMap;
-use std::io::{self, Write};
 
 use auth::AuthorizationResponse::{CodeResponse, TokenResponse};
 
@@ -39,7 +38,7 @@ pub fn parse_authorization_response(redirect_uri: &str) -> Option<AuthorizationR
         Err(_) => None,
         Ok(mut url) => {
             if url.query().is_none() {
-                let fragment = url.fragment().map(|x| String::from(x));
+                let fragment = url.fragment().map(String::from);
                 url.set_query(fragment.as_ref().map(|x| x.as_str()));
             }
 
@@ -59,8 +58,8 @@ pub fn parse_authorization_response(redirect_uri: &str) -> Option<AuthorizationR
                 Some(TokenResponse {
                     access_token: query_pairs.remove("access_token").unwrap(),
                     token_type: query_pairs.remove("token_type").unwrap(),
-                    uid: query_pairs.remove("uid").unwrap_or("".to_owned()),
-                    account_id: query_pairs.remove("account_id").unwrap_or("".to_owned()),
+                    uid: query_pairs.remove("uid").unwrap_or_else(|| "".to_owned()),
+                    account_id: query_pairs.remove("account_id").unwrap_or_else(|| "".to_owned()),
                     team_id: query_pairs.remove("team_id"),
                     state: query_pairs.remove("state"),
                 })
@@ -110,14 +109,10 @@ impl AuthOperations {
         url.set_query(Some(serde_urlencoded::to_string(token_req)?.as_str()));
 
         let client = Client::new();
-        let mut res = client.post(url)
+        let res = client.post(url)
             .send()?;
-        let mut buf = Vec::with_capacity(10000);
-        io::copy(&mut res, &mut buf)?;
 
         println!("{:?}", res);
-        println!("{:?}", String::from_utf8(buf.clone())?);
-
-        Ok(serde_json::from_slice(&buf)?)
+        Ok(serde_json::from_reader(res)?)
     }
 }
