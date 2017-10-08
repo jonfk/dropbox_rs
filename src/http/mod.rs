@@ -79,7 +79,8 @@ impl<T> ContentResponse<T, ReqwestResponse>
     }
 }
 
-pub trait Client {
+// TODO fix type parameter T for content methods
+pub trait Client<C: Read> {
     fn access_token(&self) -> &str;
     fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
         where T: Serialize,
@@ -92,15 +93,13 @@ pub trait Client {
         where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
               S: Into<Body>,
               R: DeserializeOwned;
-    fn content_download<T, R>(&self,
-                              url: Url,
-                              request: T)
-                              -> Result<ContentResponse<R, ReqwestResponse>>
+    fn content_download<T, R>(&self, url: Url, request: T) -> Result<ContentResponse<R, C>>
         where T: DeserializeOwned + Serialize + Sync + Clone + Send + 'static,
-              R: DeserializeOwned;
+              R: DeserializeOwned,
+              C: Read;
 }
 
-impl Client for Dropbox {
+impl Client<ReqwestResponse> for Dropbox {
     fn access_token(&self) -> &str {
         self.access_token.as_ref()
     }
