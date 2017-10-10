@@ -7,8 +7,7 @@ use std::ops::Index;
 
 use dropbox_rs::paper;
 use dropbox_rs::Dropbox;
-use dropbox_rs::paper::{ListPaperDocsArgs, ListPaperDocsContinueArgs, ListPaperDocsSortBy,
-                        PaperDocCreateArgs, ImportFormat, PaperDocExport, ExportFormat};
+use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat};
 
 #[test]
 fn test_paper_create_download() {
@@ -17,20 +16,11 @@ fn test_paper_create_download() {
     let create_doc = r#"# Test Paper Create
 ## this is h2
 hello"#;
-    let create_resp = paper::create(&client,
-                                    &PaperDocCreateArgs {
-                                        import_format: ImportFormat::Markdown,
-                                        parent_folder_id: None,
-                                    },
-                                    create_doc)
+    let create_resp = paper::create(&client, ImportFormat::Markdown, None, create_doc)
         .expect("error creating paper doc");
     println!("{:?}", create_resp);
 
-    let download_resp = paper::download(&client,
-                                        &PaperDocExport {
-                                            doc_id: create_resp.body.doc_id,
-                                            export_format: ExportFormat::Markdown,
-                                        })
+    let download_resp = paper::download(&client, &create_resp.body.doc_id, ExportFormat::Markdown)
         .expect("error downloading paper doc");
 
     let mut downloaded_doc = String::new();
@@ -51,12 +41,10 @@ fn test_list_folder_users() {
     let client = get_dropbox_client();
 
     let list = paper::list(&client,
-                           &ListPaperDocsArgs {
-                               filter_by: None,
-                               sort_by: Some(ListPaperDocsSortBy::Modified),
-                               sort_order: None,
-                               limit: 100,
-                           })
+                           None,
+                           Some(ListPaperDocsSortBy::Modified),
+                           None,
+                           100)
         .expect("error fetching list");
     let doc_id = list.body.doc_ids.index(0);
     let folder_users_list = paper::list_folder_users(&client, doc_id, 2)
@@ -70,12 +58,10 @@ fn test_paper_list_and_continue() {
     let client = get_dropbox_client();
 
     let list = paper::list(&client,
-                           &ListPaperDocsArgs {
-                               filter_by: None,
-                               sort_by: Some(ListPaperDocsSortBy::Modified),
-                               sort_order: None,
-                               limit: 100,
-                           })
+                           None,
+                           Some(ListPaperDocsSortBy::Modified),
+                           None,
+                           100)
         .expect("error fetching list");
 
     paper::list_continue(&client,
