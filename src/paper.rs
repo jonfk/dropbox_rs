@@ -2,7 +2,6 @@ use std::io::Read;
 
 use reqwest::Url;
 use reqwest::Body;
-use reqwest::Response as ReqwestResponse;
 
 use errors::*;
 use http::{Response, ContentResponse};
@@ -65,6 +64,32 @@ pub fn download<C, T: ContentDownloadClient<C>>
     client.content_download(url, request.clone())
 }
 
+pub fn list_folder_users<T: RPCClient>(client: &T,
+                                       doc_id: &str,
+                                       limit: i32)
+                                       -> Result<Response<ListUsersOnFolderResponse>> {
+    let url = Url::parse(BASE_URL)?.join("folder_users/list")?;
+    println!("{}", url);
+    client.rpc_request(url,
+                       &ListUsersOnFolderArgs {
+                           doc_id: doc_id.to_owned(),
+                           limit: limit,
+                       })
+}
+
+pub fn list_folder_users_continue<T: RPCClient>(client: &T,
+                                                doc_id: &str,
+                                                cursor: &str)
+                                                -> Result<Response<ListUsersOnFolderResponse>> {
+    let url = Url::parse(BASE_URL)?.join("folder_users/list/continue")?;
+    println!("{}", url);
+    client.rpc_request(url,
+                       &ListUsersOnFolderContinueArgs {
+                           doc_id: doc_id.to_owned(),
+                           cursor: cursor.to_owned(),
+                       })
+}
+
 /**
  * archive
  **/
@@ -123,6 +148,43 @@ pub struct PaperDocExportResult {
 }
 
 /**
+ * Folder Users
+ **/
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct ListUsersOnFolderArgs {
+    pub doc_id: String,
+    pub limit: i32,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct ListUsersOnFolderContinueArgs {
+    pub doc_id: String,
+    pub cursor: String,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct ListUsersOnFolderResponse {
+    pub invitees: Vec<InviteeInfo>,
+    pub users: Vec<UserInfo>,
+    pub cursor: Cursor,
+    pub has_more: bool,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct InviteeInfo {
+    pub email: String,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct UserInfo {
+    pub account_id: String,
+    pub same_team: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_member_id: Option<String>,
+}
+
+
+/**
  * List
  **/
 #[derive(Debug,Serialize,Deserialize)]
@@ -165,7 +227,7 @@ pub struct ListPaperDocsResponse {
     pub has_more: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cursor {
     pub value: String,
     pub expiration: String,
