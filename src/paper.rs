@@ -9,6 +9,45 @@ use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 
+trait PaperOperations {
+    fn archive<T: RPCClient>(client: &T, doc_id: &str) -> Result<Response<()>>;
+
+    fn create<T: ContentUploadClient, C: Into<Body>>
+        (client: &T,
+         import_format: ImportFormat,
+         parent_folder_id: Option<&str>,
+         content: C)
+         -> Result<Response<PaperDocCreateUpdateResult>>;
+
+    fn download<C, T: ContentDownloadClient<C>>
+        (client: &T,
+         doc_id: &str,
+         export_format: ExportFormat)
+         -> Result<ContentResponse<PaperDocExportResult, C>>
+        where C: Read;
+
+    fn list_folder_users<T: RPCClient>(client: &T,
+                                       doc_id: &str,
+                                       limit: i32)
+                                       -> Result<Response<ListUsersOnFolderResponse>>;
+
+    fn list_folder_users_continue<T: RPCClient>(client: &T,
+                                                doc_id: &str,
+                                                cursor: &str)
+                                                -> Result<Response<ListUsersOnFolderResponse>>;
+
+    fn list<T: RPCClient>(client: &T,
+                          filter_by: Option<ListPaperDocsFilterBy>,
+                          sort_by: Option<ListPaperDocsSortBy>,
+                          sort_order: Option<ListPaperDocsSortOrder>,
+                          limit: usize)
+                          -> Result<Response<ListPaperDocsResponse>>;
+
+    fn list_continue<T: RPCClient>(client: &T,
+                                   request: &ListPaperDocsContinueArgs)
+                                   -> Result<Response<ListPaperDocsResponse>>;
+}
+
 pub fn archive<T: RPCClient>(client: &T, doc_id: &str) -> Result<Response<()>> {
     let url = Url::parse(BASE_URL)?
         .join("archive")?;
