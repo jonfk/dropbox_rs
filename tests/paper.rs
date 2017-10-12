@@ -1,21 +1,26 @@
 extern crate dropbox_rs;
 extern crate reqwest;
+extern crate uuid;
 
 use std::env;
 use std::io::Read;
 use std::ops::Index;
+
+use uuid::Uuid;
 
 use dropbox_rs::paper;
 use dropbox_rs::Dropbox;
 use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat};
 
 #[test]
-fn test_paper_create_download_delete() {
+fn test_paper_create_download_archive_delete() {
     let client = get_dropbox_client();
+    let new_uuid = Uuid::new_v4();
 
-    let create_doc = r#"# Test Paper Create
+    let create_doc = format!(r#"# Test Paper Create {}
 ## this is h2
-hello"#;
+hello"#,
+                             new_uuid);
     let create_resp = paper::create(&client, ImportFormat::Markdown, None, create_doc)
         .expect("error creating paper doc");
     println!("{:?}", create_resp);
@@ -29,7 +34,9 @@ hello"#;
     contents.read_to_string(&mut downloaded_doc)
         .expect("error read downloaded content");
 
-    assert!(downloaded_doc.contains("Test Paper Create"));
+    assert!(downloaded_doc.contains(&format!("Test Paper Create {}", new_uuid)));
+
+    paper::archive(&client, doc_id).expect("error archiving doc");
 
     paper::permanently_delete(&client, doc_id).expect("error permanently deleting doc");
 }
@@ -67,9 +74,7 @@ fn test_paper_list_and_continue() {
                            100)
         .expect("error fetching list");
 
-    paper::list_continue(&client,
-                         &ListPaperDocsContinueArgs { cursor: list.body.cursor.value })
-        .expect("error fetching list/continue");
+    paper::list_continue(&client, &list.body.cursor.value).expect("error fetching list/continue");
 }
 
 #[test]

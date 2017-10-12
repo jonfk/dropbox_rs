@@ -88,7 +88,7 @@ pub fn get_folder_info<T: RPCClient>(client: &T,
     client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })
 }
 
-// TODO implement a builder for optional parameters
+// TODO implement a builder for optional parameters?
 pub fn list<T: RPCClient>(client: &T,
                           filter_by: Option<ListPaperDocsFilterBy>,
                           sort_by: Option<ListPaperDocsSortBy>,
@@ -109,14 +109,15 @@ pub fn list<T: RPCClient>(client: &T,
 }
 
 pub fn list_continue<T: RPCClient>(client: &T,
-                                   request: &ListPaperDocsContinueArgs)
+                                   cursor: &str)
                                    -> Result<Response<ListPaperDocsResponse>> {
     let url = Url::parse(BASE_URL)?
         .join("list/")?
         .join("continue")?;
     println!("{}", url);
 
-    client.rpc_request(url, request)
+    client.rpc_request(url,
+                       &ListPaperDocsContinueArgs { cursor: cursor.to_owned() })
 }
 
 pub fn permanently_delete<T: RPCClient>(client: &T, doc_id: &str) -> Result<Response<()>> {
