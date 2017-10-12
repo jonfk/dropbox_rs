@@ -80,6 +80,14 @@ pub fn list_folder_users_continue<T: RPCClient>(client: &T,
                        })
 }
 
+pub fn get_folder_info<T: RPCClient>(client: &T,
+                                     doc_id: &str)
+                                     -> Result<Response<FoldersContainingPaperDoc>> {
+    let url = Url::parse(BASE_URL)?.join("get_folder_info")?;
+    println!("{}", url);
+    client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })
+}
+
 // TODO implement a builder for optional parameters
 pub fn list<T: RPCClient>(client: &T,
                           filter_by: Option<ListPaperDocsFilterBy>,
@@ -109,6 +117,14 @@ pub fn list_continue<T: RPCClient>(client: &T,
     println!("{}", url);
 
     client.rpc_request(url, request)
+}
+
+pub fn permanently_delete<T: RPCClient>(client: &T, doc_id: &str) -> Result<Response<()>> {
+    let url = Url::parse(BASE_URL)?
+        .join("permanently_delete")?;
+    println!("{}", url);
+
+    client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })
 }
 
 
@@ -205,6 +221,27 @@ pub struct UserInfo {
     pub team_member_id: Option<String>,
 }
 
+/**
+ * folder info
+ **/
+#[derive(Debug,Copy,Clone,Serialize,Deserialize)]
+#[serde(tag = ".tag", rename_all = "snake_case")]
+pub enum FolderSharingPolicyType {
+    Team,
+    InviteOnly,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct Folder {
+    id: String,
+    name: String,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct FoldersContainingPaperDoc {
+    pub folder_sharing_policy_type: FolderSharingPolicyType,
+    pub folders: Vec<Folder>,
+}
 
 /**
  * List

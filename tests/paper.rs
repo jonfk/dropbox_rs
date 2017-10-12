@@ -10,7 +10,7 @@ use dropbox_rs::Dropbox;
 use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat};
 
 #[test]
-fn test_paper_create_download() {
+fn test_paper_create_download_delete() {
     let client = get_dropbox_client();
 
     let create_doc = r#"# Test Paper Create
@@ -19,8 +19,9 @@ hello"#;
     let create_resp = paper::create(&client, ImportFormat::Markdown, None, create_doc)
         .expect("error creating paper doc");
     println!("{:?}", create_resp);
+    let doc_id = &create_resp.body.doc_id;
 
-    let download_resp = paper::download(&client, &create_resp.body.doc_id, ExportFormat::Markdown)
+    let download_resp = paper::download(&client, doc_id, ExportFormat::Markdown)
         .expect("error downloading paper doc");
 
     let mut downloaded_doc = String::new();
@@ -29,6 +30,8 @@ hello"#;
         .expect("error read downloaded content");
 
     assert!(downloaded_doc.contains("Test Paper Create"));
+
+    paper::permanently_delete(&client, doc_id).expect("error permanently deleting doc");
 }
 
 fn get_dropbox_client() -> Dropbox {
@@ -67,4 +70,19 @@ fn test_paper_list_and_continue() {
     paper::list_continue(&client,
                          &ListPaperDocsContinueArgs { cursor: list.body.cursor.value })
         .expect("error fetching list/continue");
+}
+
+#[test]
+fn test_list_get_folder_info() {
+    let client = get_dropbox_client();
+
+    let list = paper::list(&client,
+                           None,
+                           Some(ListPaperDocsSortBy::Modified),
+                           None,
+                           100)
+        .expect("error fetching list");
+    let doc_id = list.body.doc_ids.index(0);
+    let folder_info = paper::get_folder_info(&client, doc_id).expect("error getting folder info");
+    println!("folder_info: {:?}", folder_info);
 }
