@@ -1,5 +1,6 @@
 use std::io::Read;
 
+use serde::{Serialize, Serializer};
 use reqwest::Url;
 use reqwest::Body;
 
@@ -126,6 +127,35 @@ pub fn permanently_delete<T: RPCClient>(client: &T, doc_id: &str) -> Result<Resp
     println!("{}", url);
 
     client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })
+}
+
+pub fn get_sharing_policy<T: RPCClient>(client: &T,
+                                        doc_id: &str)
+                                        -> Result<Response<SharingPolicy>> {
+    let url = Url::parse(BASE_URL)?
+        .join("sharing_policy/get")?;
+    println!("{}", url);
+
+    client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })
+}
+
+pub fn set_sharing_policy<T: RPCClient>(client: &T,
+                                        doc_id: &str,
+                                        public_sharing_policy: Option<SharingPublicPolicyType>,
+                                        team_sharing_policy: Option<SharingTeamPolicyType>)
+                                        -> Result<Response<()>> {
+    let url = Url::parse(BASE_URL)?
+        .join("sharing_policy/set")?;
+    println!("{}", url);
+
+    client.rpc_request(url,
+                       &PaperDocSharingPolicy {
+                           doc_id: doc_id.to_owned(),
+                           sharing_policy: SharingPolicy {
+                               public_sharing_policy: public_sharing_policy,
+                               team_sharing_policy: team_sharing_policy,
+                           },
+                       })
 }
 
 
@@ -296,4 +326,85 @@ pub struct Cursor {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListPaperDocsContinueArgs {
     pub cursor: String,
+}
+
+/**
+ * Sharing Policy
+ **/
+#[derive(PartialEq,Eq,Debug,Copy,Clone,Deserialize)]
+#[serde(tag = ".tag", rename_all = "snake_case")]
+pub enum SharingPublicPolicyType {
+    PeopleWithLinkCanEdit,
+    PeopleWithLinkCanViewAndComment,
+    InviteOnly,
+    Disabled,
+}
+
+impl Serialize for SharingPublicPolicyType {
+    fn serialize<S>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        match *self {
+            SharingPublicPolicyType::PeopleWithLinkCanEdit => {
+                serializer.serialize_unit_variant("SharingPublicPolicyType",
+                                                  0,
+                                                  "people_with_link_can_edit")
+            }
+            SharingPublicPolicyType::PeopleWithLinkCanViewAndComment => {
+                serializer.serialize_unit_variant("SharingPublicPolicyType",
+                                                  1,
+                                                  "people_with_link_can_view_and_comment")
+            }
+            SharingPublicPolicyType::InviteOnly => {
+                serializer.serialize_unit_variant("SharingPublicPolicyType", 2, "invite_only")
+            }
+            SharingPublicPolicyType::Disabled => {
+                serializer.serialize_unit_variant("SharingPublicPolicyType", 3, "disabled")
+            }
+        }
+    }
+}
+
+#[derive(PartialEq,Eq,Debug,Copy,Clone,Deserialize)]
+#[serde(tag = ".tag", rename_all = "snake_case")]
+pub enum SharingTeamPolicyType {
+    PeopleWithLinkCanEdit,
+    PeopleWithLinkCanViewAndComment,
+    InviteOnly,
+}
+
+impl Serialize for SharingTeamPolicyType {
+    fn serialize<S>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        match *self {
+            SharingTeamPolicyType::PeopleWithLinkCanEdit => {
+                serializer.serialize_unit_variant("SharingTeamPolicyType",
+                                                  0,
+                                                  "people_with_link_can_edit")
+            }
+            SharingTeamPolicyType::PeopleWithLinkCanViewAndComment => {
+                serializer.serialize_unit_variant("SharingTeamPolicyType",
+                                                  1,
+                                                  "people_with_link_can_view_and_comment")
+            }
+            SharingTeamPolicyType::InviteOnly => {
+                serializer.serialize_unit_variant("SharingTeamPolicyType", 2, "invite_only")
+            }
+        }
+    }
+}
+
+#[derive(PartialEq,Eq,Debug,Copy,Clone,Serialize,Deserialize)]
+pub struct SharingPolicy {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_sharing_policy: Option<SharingPublicPolicyType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_sharing_policy: Option<SharingTeamPolicyType>,
+}
+
+#[derive(PartialEq,Eq,Debug,Clone,Serialize)]
+struct PaperDocSharingPolicy {
+    doc_id: String,
+    sharing_policy: SharingPolicy,
 }

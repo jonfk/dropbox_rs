@@ -1,6 +1,7 @@
 extern crate dropbox_rs;
 extern crate reqwest;
 extern crate uuid;
+extern crate serde_json;
 
 use std::env;
 use std::io::Read;
@@ -10,23 +11,16 @@ use uuid::Uuid;
 
 use dropbox_rs::paper;
 use dropbox_rs::Dropbox;
-use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat};
+use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat,
+                        SharingPolicy, SharingPublicPolicyType, SharingTeamPolicyType};
 
 #[test]
 fn test_paper_create_download_archive_delete() {
     let client = get_dropbox_client();
-    let new_uuid = Uuid::new_v4();
 
-    let create_doc = format!(r#"# Test Paper Create {}
-## this is h2
-hello"#,
-                             new_uuid);
-    let create_resp = paper::create(&client, ImportFormat::Markdown, None, create_doc)
-        .expect("error creating paper doc");
-    println!("{:?}", create_resp);
-    let doc_id = &create_resp.body.doc_id;
+    let (doc_id, new_uuid) = create_rand_doc(&client);
 
-    let download_resp = paper::download(&client, doc_id, ExportFormat::Markdown)
+    let download_resp = paper::download(&client, &doc_id, ExportFormat::Markdown)
         .expect("error downloading paper doc");
 
     let mut downloaded_doc = String::new();
@@ -36,14 +30,25 @@ hello"#,
 
     assert!(downloaded_doc.contains(&format!("Test Paper Create {}", new_uuid)));
 
-    paper::archive(&client, doc_id).expect("error archiving doc");
+    paper::archive(&client, &doc_id).expect("error archiving doc");
 
-    paper::permanently_delete(&client, doc_id).expect("error permanently deleting doc");
+    paper::permanently_delete(&client, &doc_id).expect("error permanently deleting doc");
 }
 
 fn get_dropbox_client() -> Dropbox {
     let access_code = env::var("DROPBOX_TOKEN").expect("Couldn't find DROPBOX_ACCESS env_var");
     Dropbox::new(&access_code)
+}
+
+fn create_rand_doc(client: &Dropbox) -> (String, Uuid) {
+    let new_uuid = Uuid::new_v4();
+    let create_doc = format!(r#"# Test Paper Create {}
+## this is h2
+hello"#,
+                             new_uuid);
+    let create_resp = paper::create(client, ImportFormat::Markdown, None, create_doc)
+        .expect("error creating paper doc");
+    (create_resp.body.doc_id, new_uuid)
 }
 
 #[test]
@@ -67,11 +72,7 @@ fn test_list_folder_users() {
 fn test_paper_list_and_continue() {
     let client = get_dropbox_client();
 
-    let list = paper::list(&client,
-                           None,
-                           Some(ListPaperDocsSortBy::Modified),
-                           None,
-                           100)
+    let list = paper::list(&client, None, Some(ListPaperDocsSortBy::Modified), None, 10)
         .expect("error fetching list");
 
     paper::list_continue(&client, &list.body.cursor.value).expect("error fetching list/continue");
@@ -90,4 +91,26 @@ fn test_list_get_folder_info() {
     let doc_id = list.body.doc_ids.index(0);
     let folder_info = paper::get_folder_info(&client, doc_id).expect("error getting folder info");
     println!("folder_info: {:?}", folder_info);
+}
+
+#[test]
+fn test_get_set_sharing_policy() {
+    let client = get_dropbox_client();
+    let (doc_id, _) = create_rand_doc(&client);
+
+    let sharing_policy = paper::get_sharing_policy(&client, &doc_id)
+        .expect("error getting sharing policy");
+    println!("{:?}", sharing_policy);
+
+    let expected_public_sharing_policy =
+        Some(SharingPublicPolicyType::PeopleWithLinkCanViewAndComment);
+    paper::set_sharing_policy(&client, &doc_id, expected_public_sharing_policy, None)
+        .expect("error setting sharing policy");
+
+    let SharingPolicy { public_sharing_policy, team_sharing_policy } =
+        paper::get_sharing_policy(&client, &doc_id).expect("error getting sharing policy").body;
+
+    assert_eq!(public_sharing_policy, expected_public_sharing_policy);
+
+    paper::permanently_delete(&client, &doc_id).expect("error deleting doc");
 }
