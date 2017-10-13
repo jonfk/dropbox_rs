@@ -19,3 +19,5 @@ Rust bindings to the Dropbox API
     - I like structured logging and slog looks really good https://github.com/slog-rs/slog
 - [ ] Better documentation. Document the various functions and point them to the relevant place in dropbox's documentation 
 - [ ] Unstable async operations
+- [ ] Content Hash to compare remote files with local files without downloading [Link](https://www.dropbox.com/developers/reference/content-hash)
+- [ ] Webhook support?
