@@ -1,8 +1,12 @@
+
 extern crate dropbox_rs;
 extern crate reqwest;
 extern crate uuid;
 extern crate serde_json;
 extern crate dotenv;
+
+#[path="utils/mod.rs"]
+mod utils;
 
 use std::env;
 use std::io::Read;
@@ -17,6 +21,8 @@ use dropbox_rs::Dropbox;
 use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat,
                         SharingPolicy, SharingPublicPolicyType, SharingTeamPolicyType,
                         PaperDocUpdatePolicy, PaperDocCreateUpdateResult};
+
+use self::utils::get_dropbox_client;
 
 #[test]
 fn test_paper_create_download_archive_delete() {
@@ -37,13 +43,6 @@ fn test_paper_create_download_archive_delete() {
     paper::archive(&client, &doc_id).expect("error archiving doc");
 
     paper::permanently_delete(&client, &doc_id).expect("error permanently deleting doc");
-}
-
-fn get_dropbox_client() -> Dropbox {
-    dotenv().ok();
-
-    let access_code = env::var("DROPBOX_TOKEN").expect("Couldn't find DROPBOX_TOKEN env_var");
-    Dropbox::new(&access_code)
 }
 
 fn create_rand_doc(client: &Dropbox) -> (PaperDocCreateUpdateResult, Uuid) {
