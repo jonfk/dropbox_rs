@@ -1,7 +1,9 @@
 [![Build Status](https://travis-ci.org/jonfk/dropbox_rs.svg?branch=master)](https://travis-ci.org/jonfk/dropbox_rs)
 
 # dropbox_rs
-Rust bindings to the Dropbox API
+Rust bindings to the Dropbox API 
+
+- Dropbox HTTP API Documentation [Link](https://www.dropbox.com/developers/documentation/http/documentation)
 
 ## APIs Implementation Status
 - [x] auth

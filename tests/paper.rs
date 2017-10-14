@@ -12,13 +12,14 @@ use uuid::Uuid;
 use dropbox_rs::paper;
 use dropbox_rs::Dropbox;
 use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat,
-                        SharingPolicy, SharingPublicPolicyType, SharingTeamPolicyType};
+                        SharingPolicy, SharingPublicPolicyType, SharingTeamPolicyType,
+                        PaperDocUpdatePolicy, PaperDocCreateUpdateResult};
 
 #[test]
 fn test_paper_create_download_archive_delete() {
     let client = get_dropbox_client();
 
-    let (doc_id, new_uuid) = create_rand_doc(&client);
+    let (PaperDocCreateUpdateResult { doc_id, .. }, new_uuid) = create_rand_doc(&client);
 
     let download_resp = paper::download(&client, &doc_id, ExportFormat::Markdown)
         .expect("error downloading paper doc");
@@ -40,7 +41,7 @@ fn get_dropbox_client() -> Dropbox {
     Dropbox::new(&access_code)
 }
 
-fn create_rand_doc(client: &Dropbox) -> (String, Uuid) {
+fn create_rand_doc(client: &Dropbox) -> (PaperDocCreateUpdateResult, Uuid) {
     let new_uuid = Uuid::new_v4();
     let create_doc = format!(r#"# Test Paper Create {}
 ## this is h2
@@ -48,7 +49,7 @@ hello"#,
                              new_uuid);
     let create_resp = paper::create(client, ImportFormat::Markdown, None, create_doc)
         .expect("error creating paper doc");
-    (create_resp.body.doc_id, new_uuid)
+    (create_resp.body, new_uuid)
 }
 
 #[test]
@@ -96,7 +97,7 @@ fn test_list_get_folder_info() {
 #[test]
 fn test_get_set_sharing_policy() {
     let client = get_dropbox_client();
-    let (doc_id, _) = create_rand_doc(&client);
+    let (PaperDocCreateUpdateResult { doc_id, .. }, _) = create_rand_doc(&client);
 
     let sharing_policy = paper::get_sharing_policy(&client, &doc_id)
         .expect("error getting sharing policy");
@@ -113,4 +114,35 @@ fn test_get_set_sharing_policy() {
     assert_eq!(public_sharing_policy, expected_public_sharing_policy);
 
     paper::permanently_delete(&client, &doc_id).expect("error deleting doc");
+}
+
+#[test]
+fn test_update() {
+    let client = get_dropbox_client();
+
+    let (PaperDocCreateUpdateResult { doc_id, revision, .. }, _) = create_rand_doc(&client);
+
+    let new_uuid = Uuid::new_v4();
+
+    let update_content = format!(r#"hello updated with this {}"#, new_uuid);
+
+    let update_result = paper::update(&client,
+                                      &doc_id,
+                                      PaperDocUpdatePolicy::OverwriteAll,
+                                      revision,
+                                      ImportFormat::PlainText,
+                                      update_content.clone())
+        .expect("error updating doc");
+
+    let download_resp = paper::download(&client, &doc_id, ExportFormat::Markdown)
+        .expect("error downloading paper doc");
+
+    let mut downloaded_doc = String::new();
+    let mut contents = download_resp.content;
+    contents.read_to_string(&mut downloaded_doc)
+        .expect("error read downloaded content");
+
+    assert!(downloaded_doc.contains(&update_content));
+
+    paper::permanently_delete(&client, &doc_id).expect("error permanently deleting doc");
 }

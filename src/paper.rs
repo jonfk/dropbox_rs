@@ -25,7 +25,6 @@ pub fn create<T: ContentUploadClient, C: Into<Body>>
      parent_folder_id: Option<&str>,
      content: C)
      -> Result<Response<PaperDocCreateUpdateResult>> {
-
     let url = Url::parse(BASE_URL)?
         .join("create")?;
     println!("{}", url);
@@ -158,6 +157,29 @@ pub fn set_sharing_policy<T: RPCClient>(client: &T,
                        })
 }
 
+pub fn update<T: ContentUploadClient, C: Into<Body>>
+    (client: &T,
+     doc_id: &str,
+     doc_update_policy: PaperDocUpdatePolicy,
+     revision: i64,
+     import_format: ImportFormat,
+     content: C)
+     -> Result<Response<PaperDocCreateUpdateResult>> {
+
+    let url = Url::parse(BASE_URL)?
+        .join("update")?;
+    println!("{}", url);
+
+    client.content_upload_request(url,
+                                  PaperDocUpdateArgs {
+                                      doc_id: doc_id.to_owned(),
+                                      doc_update_policy: doc_update_policy,
+                                      revision: revision,
+                                      import_format: import_format,
+                                  },
+                                  content)
+}
+
 
 /**
  * archive
@@ -177,7 +199,7 @@ pub struct PaperDocCreateArgs {
     pub parent_folder_id: Option<String>,
 }
 
-#[derive(Debug,Clone,Copy,Serialize,Deserialize)]
+#[derive(PartialEq,Eq,Debug,Clone,Copy,Serialize,Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ImportFormat {
     Html,
@@ -407,4 +429,23 @@ pub struct SharingPolicy {
 struct PaperDocSharingPolicy {
     doc_id: String,
     sharing_policy: SharingPolicy,
+}
+
+/**
+ * Update
+ **/
+#[derive(PartialEq,Eq,Debug,Copy,Clone,Serialize,Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PaperDocUpdatePolicy {
+    Append,
+    Prepend,
+    OverwriteAll,
+}
+
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct PaperDocUpdateArgs {
+    pub doc_id: String,
+    pub doc_update_policy: PaperDocUpdatePolicy,
+    pub revision: i64,
+    pub import_format: ImportFormat,
 }
