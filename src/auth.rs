@@ -1,12 +1,17 @@
 
 use serde_urlencoded;
 use serde_json;
+use serde::de::DeserializeOwned;
+use serde::ser::Serialize;
 use reqwest::{Url, Client};
 use std::collections::HashMap;
 
 use auth::AuthorizationResponse::{CodeResponse, TokenResponse};
 
 use errors::*;
+use http::Response;
+
+static BASE_URL: &'static str = "https://api.dropboxapi.com/2/auth/token/";
 
 pub fn build_authorization_uri(client_id: &str, redirect_uri: &str, response_type: &str) -> String {
     let mut url = Url::parse("https://www.dropbox.com/oauth2/authorize").unwrap();
@@ -115,4 +120,36 @@ impl AuthOperations {
         println!("{:?}", res);
         Ok(serde_json::from_reader(res)?)
     }
+
+    fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
+        where T: Serialize,
+              R: DeserializeOwned
+    {
+        let client = Client::new();
+        let res = client.post(url)
+            .basic_auth(self.client_id.as_str(), Some(self.client_secret.as_str()))
+            .json(&request_body)
+            .send()?;
+
+        Ok(Response::try_from(res)?)
+    }
+    pub fn token_from_oauth1(&self) -> Result<Response<TokenFromOAuth1Result>> {
+        let url = Url::parse("https://api.dropboxapi.com/2/auth/token/from_oauth1")?;
+        self.rpc_request(url,
+                         &TokenFromOAuth1Arg {
+                             oauth1_token: self.client_id.clone(),
+                             oauth1_token_secret: self.client_secret.clone(),
+                         })
+    }
+}
+
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct TokenFromOAuth1Arg {
+    pub oauth1_token: String,
+    pub oauth1_token_secret: String,
+}
+
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct TokenFromOAuth1Result {
+    pub oauth2_token: String,
 }

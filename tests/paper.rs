@@ -2,14 +2,17 @@ extern crate dropbox_rs;
 extern crate reqwest;
 extern crate uuid;
 extern crate serde_json;
+extern crate dotenv;
 
 use std::env;
 use std::io::Read;
 use std::ops::Index;
 
+use dotenv::dotenv;
 use uuid::Uuid;
 
 use dropbox_rs::paper;
+use dropbox_rs::auth::{AuthOperations, TokenFromOAuth1Result};
 use dropbox_rs::Dropbox;
 use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat,
                         SharingPolicy, SharingPublicPolicyType, SharingTeamPolicyType,
@@ -37,7 +40,9 @@ fn test_paper_create_download_archive_delete() {
 }
 
 fn get_dropbox_client() -> Dropbox {
-    let access_code = env::var("DROPBOX_TOKEN").expect("Couldn't find DROPBOX_ACCESS env_var");
+    dotenv().ok();
+
+    let access_code = env::var("DROPBOX_TOKEN").expect("Couldn't find DROPBOX_TOKEN env_var");
     Dropbox::new(&access_code)
 }
 
