@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use auth::AuthorizationResponse::{CodeResponse, TokenResponse};
 
 use errors::*;
-use http::Response;
+use http::{Response, RPCClient};
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/auth/token/";
 
@@ -140,6 +140,19 @@ impl AuthOperations {
                              oauth1_token: self.client_id.clone(),
                              oauth1_token_secret: self.client_secret.clone(),
                          })
+    }
+}
+
+pub trait RevokableToken {
+    fn revoke_token(&self) -> Result<Response<()>>;
+}
+
+impl<C> RevokableToken for C
+    where C: RPCClient
+{
+    fn revoke_token(&self) -> Result<Response<()>> {
+        let url = Url::parse(BASE_URL)?.join("revoke")?;
+        self.rpc_request(url, ())
     }
 }
 

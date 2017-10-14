@@ -8,19 +8,15 @@ extern crate dotenv;
 #[path="utils/mod.rs"]
 mod utils;
 
-use std::env;
 use std::io::Read;
 use std::ops::Index;
 
-use dotenv::dotenv;
 use uuid::Uuid;
 
 use dropbox_rs::paper;
-use dropbox_rs::auth::{AuthOperations, TokenFromOAuth1Result};
 use dropbox_rs::Dropbox;
-use dropbox_rs::paper::{ListPaperDocsContinueArgs, ListPaperDocsSortBy, ImportFormat, ExportFormat,
-                        SharingPolicy, SharingPublicPolicyType, SharingTeamPolicyType,
-                        PaperDocUpdatePolicy, PaperDocCreateUpdateResult};
+use dropbox_rs::paper::{ListPaperDocsSortBy, ImportFormat, ExportFormat, SharingPolicy,
+                        SharingPublicPolicyType, PaperDocUpdatePolicy, PaperDocCreateUpdateResult};
 
 use self::utils::get_dropbox_client;
 
