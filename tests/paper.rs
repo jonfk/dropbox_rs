@@ -17,6 +17,7 @@ use dropbox_rs::paper;
 use dropbox_rs::Dropbox;
 use dropbox_rs::paper::{ListPaperDocsSortBy, ImportFormat, ExportFormat, SharingPolicy,
                         SharingPublicPolicyType, PaperDocUpdatePolicy, PaperDocCreateUpdateResult};
+use dropbox_rs::paper::users::{MemberSelector, PaperDocPermissionLevel, AddPaperDocUserResult};
 
 use self::utils::get_dropbox_client;
 
@@ -145,4 +146,26 @@ fn test_update() {
     assert!(downloaded_doc.contains(&update_content));
 
     paper::permanently_delete(&client, &doc_id).expect("error permanently deleting doc");
+}
+
+#[test]
+fn test_users_add() {
+    let client = get_dropbox_client();
+
+    let (PaperDocCreateUpdateResult { doc_id, .. }, _) = create_rand_doc(&client);
+
+    let member_selector = MemberSelector::Email { email: "jfokkan@gmail.com".to_owned() };
+
+    let users_add_result = paper::users_add(&client, doc_id.as_str())
+        .custom_message("hello jfokkan from dropbox_rs")
+        .add_member(&member_selector, &PaperDocPermissionLevel::Edit)
+        .send()
+        .expect("error adding users");
+    println!("{:?}", users_add_result);
+
+    paper::permanently_delete(&client, &doc_id).expect("error permanently deleting doc");
+
+    assert_eq!(users_add_result.body[0].member, member_selector);
+    assert_eq!(users_add_result.body[0].result,
+               AddPaperDocUserResult::Success);
 }

@@ -17,6 +17,7 @@ pub mod paper;
 pub mod errors;
 pub mod http;
 
+#[derive(Clone)]
 pub struct Dropbox {
     access_token: String,
 }

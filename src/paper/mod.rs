@@ -1,3 +1,5 @@
+pub mod users;
+
 use std::io::Read;
 
 use serde::{Serialize, Serializer};
@@ -7,6 +9,8 @@ use reqwest::Body;
 use errors::*;
 use http::{Response, ContentResponse};
 use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
+
+use self::users::AddPaperDocUserRequestBuilder;
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 
@@ -178,6 +182,12 @@ pub fn update<T: ContentUploadClient, C: Into<Body>>
                                       import_format: import_format,
                                   },
                                   content)
+}
+
+pub fn users_add<T: RPCClient + Clone>(client: &T,
+                                       doc_id: &str)
+                                       -> AddPaperDocUserRequestBuilder<T> {
+    AddPaperDocUserRequestBuilder::new(client, doc_id)
 }
 
 

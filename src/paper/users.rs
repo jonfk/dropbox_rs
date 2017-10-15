@@ -1,0 +1,103 @@
+
+use reqwest::Url;
+
+use errors::*;
+use http::{Response, ContentResponse};
+use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
+
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+#[serde(tag = ".tag", rename_all = "snake_case")]
+pub enum MemberSelector {
+    DropboxId { dropbox_id: String },
+    Email { email: String },
+}
+#[derive(Debug,Copy,Clone,Serialize,Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PaperDocPermissionLevel {
+    Edit,
+    ViewAndComment,
+}
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct AddMember {
+    pub member: MemberSelector,
+    pub permission_level: PaperDocPermissionLevel,
+}
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct AddPaperDocUser {
+    pub doc_id: String,
+    pub members: Vec<AddMember>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_message: Option<String>,
+    pub quiet: bool,
+}
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+#[serde(tag = ".tag", rename_all = "snake_case")]
+pub enum AddPaperDocUserResult {
+    Success,
+    UnknownError,
+    SharingOutsideTeamDisabled,
+    DailyLimitReached,
+    UserIsOwner,
+    FailedUserDataRetrieval,
+    PermissionAlreadyGranted,
+}
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct AddPaperDocUserMemberResult {
+    pub member: MemberSelector,
+    pub result: AddPaperDocUserResult,
+}
+
+pub struct AddPaperDocUserRequestBuilder<T> {
+    client: T,
+    doc_id: String,
+    members: Vec<AddMember>,
+    custom_message: Option<String>,
+    quiet: bool,
+}
+
+impl<T> AddPaperDocUserRequestBuilder<T>
+    where T: RPCClient + Clone
+{
+    pub fn new(client: &T, doc_id: &str) -> AddPaperDocUserRequestBuilder<T> {
+        AddPaperDocUserRequestBuilder {
+            client: client.clone(),
+            doc_id: doc_id.to_owned(),
+            members: Vec::new(),
+            custom_message: None,
+            quiet: false,
+        }
+    }
+
+    pub fn add_member(&mut self,
+                      member: &MemberSelector,
+                      permission_level: &PaperDocPermissionLevel)
+                      -> &mut AddPaperDocUserRequestBuilder<T> {
+        self.members.push(AddMember {
+            member: member.clone(),
+            permission_level: permission_level.clone(),
+        });
+        self
+    }
+
+    pub fn quiet(&mut self, quiet: bool) -> &mut AddPaperDocUserRequestBuilder<T> {
+        self.quiet = quiet;
+        self
+    }
+    pub fn custom_message(&mut self,
+                          custom_message: &str)
+                          -> &mut AddPaperDocUserRequestBuilder<T> {
+        self.custom_message = Some(custom_message.to_owned());;
+        self
+    }
+
+    pub fn send(&self) -> Result<Response<Vec<AddPaperDocUserMemberResult>>> {
+        let url = Url::parse(super::BASE_URL)?.join("users/add")?;
+        self.client.rpc_request(url,
+                                AddPaperDocUser {
+                                    doc_id: self.doc_id.clone(),
+                                    members: self.members.clone(),
+                                    custom_message: self.custom_message.clone(),
+                                    quiet: self.quiet,
+                                })
+    }
+}
