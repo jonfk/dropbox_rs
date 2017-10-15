@@ -17,7 +17,8 @@ use dropbox_rs::paper;
 use dropbox_rs::Dropbox;
 use dropbox_rs::paper::{ListPaperDocsSortBy, ImportFormat, ExportFormat, SharingPolicy,
                         SharingPublicPolicyType, PaperDocUpdatePolicy, PaperDocCreateUpdateResult};
-use dropbox_rs::paper::users::{MemberSelector, PaperDocPermissionLevel, AddPaperDocUserResult};
+use dropbox_rs::paper::users::{MemberSelector, PaperDocPermissionLevel, AddPaperDocUserResult,
+                               UserOnPaperDocFilter};
 
 use self::utils::get_dropbox_client;
 
@@ -163,7 +164,13 @@ fn test_users_add() {
         .expect("error adding users");
     println!("{:?}", users_add_result);
 
+    let users_list = paper::users_list(&client, &doc_id, 10, UserOnPaperDocFilter::Shared)
+        .expect("error listing users");
+
     paper::permanently_delete(&client, &doc_id).expect("error permanently deleting doc");
+
+    assert_eq!(users_list.body.invitees[0].invitee.email,
+               "jfokkan@gmail.com");
 
     assert_eq!(users_add_result.body[0].member, member_selector);
     assert_eq!(users_add_result.body[0].result,

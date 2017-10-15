@@ -10,7 +10,8 @@ use errors::*;
 use http::{Response, ContentResponse};
 use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
 
-use self::users::AddPaperDocUserRequestBuilder;
+use self::users::{AddPaperDocUserRequestBuilder, UserOnPaperDocFilter, ListUsersOnPaperDocResponse,
+                  ListUsersOnPaperDocArgs, ListUsersOnPaperDocContinueArgs};
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 
@@ -190,6 +191,32 @@ pub fn users_add<T: RPCClient + Clone>(client: &T,
     AddPaperDocUserRequestBuilder::new(client, doc_id)
 }
 
+pub fn users_list<T: RPCClient>(client: &T,
+                                doc_id: &str,
+                                limit: i32,
+                                filter_by: UserOnPaperDocFilter)
+                                -> Result<Response<ListUsersOnPaperDocResponse>> {
+    let url = Url::parse(BASE_URL)?.join("users/list")?;
+    client.rpc_request(url,
+                       &ListUsersOnPaperDocArgs {
+                           doc_id: doc_id.to_owned(),
+                           limit: limit,
+                           filter_by: filter_by,
+                       })
+}
+
+pub fn users_list_continue<T: RPCClient>(client: &T,
+                                         doc_id: &str,
+                                         cursor: &str)
+                                         -> Result<Response<ListUsersOnPaperDocResponse>> {
+    let url = Url::parse(BASE_URL)?.join("users/list/continue")?;
+    client.rpc_request(url,
+                       &ListUsersOnPaperDocContinueArgs {
+                           doc_id: doc_id.to_owned(),
+                           cursor: cursor.to_owned(),
+                       })
+}
+
 
 /**
  * archive
@@ -349,7 +376,7 @@ pub struct ListPaperDocsResponse {
     pub has_more: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq,Eq,Debug, Clone, Serialize, Deserialize)]
 pub struct Cursor {
     pub value: String,
     pub expiration: String,

@@ -1,9 +1,11 @@
 
+use serde::{Serialize, Serializer};
+
 use reqwest::Url;
 
 use errors::*;
-use http::{Response, ContentResponse};
-use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
+use http::Response;
+use http::RPCClient;
 
 #[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
 #[serde(tag = ".tag", rename_all = "snake_case")]
@@ -11,12 +13,28 @@ pub enum MemberSelector {
     DropboxId { dropbox_id: String },
     Email { email: String },
 }
-#[derive(Debug,Copy,Clone,Serialize,Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(PartialEq,Eq,Debug,Copy,Clone,Deserialize)]
+#[serde(tag = ".tag", rename_all = "snake_case")]
 pub enum PaperDocPermissionLevel {
     Edit,
     ViewAndComment,
 }
+impl Serialize for PaperDocPermissionLevel {
+    fn serialize<S>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        match *self {
+            PaperDocPermissionLevel::Edit => {
+                serializer.serialize_unit_variant("PaperDocPermissionLevel", 0, "edit")
+            }
+            PaperDocPermissionLevel::ViewAndComment => {
+                serializer.serialize_unit_variant("PaperDocPermissionLevel", 1, "view_and_comment")
+            }
+        }
+    }
+}
+
+
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct AddMember {
     pub member: MemberSelector,
@@ -100,4 +118,51 @@ impl<T> AddPaperDocUserRequestBuilder<T>
                                     quiet: self.quiet,
                                 })
     }
+}
+
+#[derive(PartialEq,Eq,Debug,Copy,Clone,Serialize,Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UserOnPaperDocFilter {
+    Visited,
+    Shared,
+}
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct ListUsersOnPaperDocArgs {
+    pub doc_id: String,
+    pub limit: i32,
+    pub filter_by: UserOnPaperDocFilter,
+}
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct InviteeInfo {
+    pub email: String,
+}
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct InviteeInfoWithPermissionLevel {
+    pub invitee: InviteeInfo,
+    pub permission_level: PaperDocPermissionLevel,
+}
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct UserInfo {
+    pub account_id: String,
+    pub same_team: bool,
+    pub team_member_id: Option<String>,
+}
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct UserInfoWithPermissionLevel {
+    pub user: UserInfo,
+    pub permission_level: PaperDocPermissionLevel,
+}
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct ListUsersOnPaperDocResponse {
+    pub invitees: Vec<InviteeInfoWithPermissionLevel>,
+    pub users: Vec<UserInfoWithPermissionLevel>,
+    pub doc_owner: UserInfo,
+    pub cursor: super::Cursor,
+    pub has_more: bool,
+}
+
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct ListUsersOnPaperDocContinueArgs {
+    pub doc_id: String,
+    pub cursor: String,
 }
