@@ -11,7 +11,8 @@ use http::{Response, ContentResponse};
 use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
 
 use self::users::{AddPaperDocUserRequestBuilder, UserOnPaperDocFilter, ListUsersOnPaperDocResponse,
-                  ListUsersOnPaperDocArgs, ListUsersOnPaperDocContinueArgs};
+                  ListUsersOnPaperDocArgs, ListUsersOnPaperDocContinueArgs, RemovePaperDocUser,
+                  MemberSelector};
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 
@@ -214,6 +215,18 @@ pub fn users_list_continue<T: RPCClient>(client: &T,
                        &ListUsersOnPaperDocContinueArgs {
                            doc_id: doc_id.to_owned(),
                            cursor: cursor.to_owned(),
+                       })
+}
+
+pub fn users_remove<T: RPCClient>(client: &T,
+                                  doc_id: &str,
+                                  member: &MemberSelector)
+                                  -> Result<Response<()>> {
+    let url = Url::parse(BASE_URL)?.join("users/remove")?;
+    client.rpc_request(url,
+                       &RemovePaperDocUser {
+                           doc_id: doc_id.to_owned(),
+                           member: member.clone(),
                        })
 }
 

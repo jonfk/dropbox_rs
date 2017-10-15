@@ -150,7 +150,7 @@ fn test_update() {
 }
 
 #[test]
-fn test_users_add() {
+fn test_users_add_list_remove() {
     let client = get_dropbox_client();
 
     let (PaperDocCreateUpdateResult { doc_id, .. }, _) = create_rand_doc(&client);
@@ -167,12 +167,19 @@ fn test_users_add() {
     let users_list = paper::users_list(&client, &doc_id, 10, UserOnPaperDocFilter::Shared)
         .expect("error listing users");
 
-    paper::permanently_delete(&client, &doc_id).expect("error permanently deleting doc");
+    paper::users_remove(&client, &doc_id, &member_selector).expect("error removing user");
 
-    assert_eq!(users_list.body.invitees[0].invitee.email,
-               "jfokkan@gmail.com");
+    let users_list_after_remove =
+        paper::users_list(&client, &doc_id, 10, UserOnPaperDocFilter::Shared)
+            .expect("error listing users");
+
+    paper::permanently_delete(&client, &doc_id).expect("error permanently deleting doc");
 
     assert_eq!(users_add_result.body[0].member, member_selector);
     assert_eq!(users_add_result.body[0].result,
                AddPaperDocUserResult::Success);
+
+    assert_eq!(users_list.body.invitees[0].invitee.email,
+               "jfokkan@gmail.com");
+    assert_eq!(users_list_after_remove.body.invitees.len(), 0);
 }

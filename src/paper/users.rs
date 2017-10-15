@@ -7,6 +7,9 @@ use errors::*;
 use http::Response;
 use http::RPCClient;
 
+/**
+ * add users
+ **/
 #[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
 #[serde(tag = ".tag", rename_all = "snake_case")]
 pub enum MemberSelector {
@@ -120,6 +123,9 @@ impl<T> AddPaperDocUserRequestBuilder<T>
     }
 }
 
+/**
+ * list
+ **/
 #[derive(PartialEq,Eq,Debug,Copy,Clone,Serialize,Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UserOnPaperDocFilter {
@@ -165,4 +171,13 @@ pub struct ListUsersOnPaperDocResponse {
 pub struct ListUsersOnPaperDocContinueArgs {
     pub doc_id: String,
     pub cursor: String,
+}
+
+/**
+ * remove
+ **/
+#[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
+pub struct RemovePaperDocUser {
+    pub doc_id: String,
+    pub member: MemberSelector,
 }
