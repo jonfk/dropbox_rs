@@ -32,14 +32,19 @@ pub struct Response<T> {
 impl<T> Response<T>
     where T: DeserializeOwned
 {
-    pub fn try_from(resp: ReqwestResponse) -> Result<Response<T>> {
+    pub fn try_from(mut resp: ReqwestResponse) -> Result<Response<T>> {
         let status = resp.status();
         let headers = resp.headers().clone();
 
         if status.is_success() {
-            let body = serde_json::from_reader(resp)?;
+            let mut body = String::new();
+            resp.by_ref().read_to_string(&mut body)?;
+            // TODO replace with proper log.debug
+            println!("\nRPC json: {}\n", body);
+            //let body = serde_json::from_reader(resp)?;
+            let json = serde_json::from_str(body.as_str())?;
             Ok(Response {
-                body: body,
+                body: json,
                 status: status,
                 headers: headers,
             })
@@ -98,7 +103,7 @@ pub trait RPCClient {
 }
 
 impl<C> RPCClient for C
-    where C: HasAccessToken
+    where C: HasAccessToken + Clone
 {
     fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
         where T: Serialize,
@@ -126,7 +131,7 @@ pub trait ContentUploadClient {
 }
 
 impl<C> ContentUploadClient for C
-    where C: HasAccessToken
+    where C: HasAccessToken + Clone
 {
     fn content_upload_request<T, S, R>(&self,
                                        url: Url,
@@ -158,7 +163,7 @@ pub trait ContentDownloadClient<C: Read> {
 
 
 impl<C> ContentDownloadClient<ReqwestResponse> for C
-    where C: HasAccessToken
+    where C: HasAccessToken + Clone
 {
     fn content_download<T, R>(&self,
                               url: Url,
