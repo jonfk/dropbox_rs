@@ -1,4 +1,5 @@
 pub mod users;
+pub mod errors;
 
 use std::io::Read;
 
