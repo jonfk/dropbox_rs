@@ -183,3 +183,13 @@ fn test_users_add_list_remove() {
                "jfokkan@gmail.com");
     assert_eq!(users_list_after_remove.body.invitees.len(), 0);
 }
+
+#[test]
+fn test_cursor_error() {
+    let error_json = r#"{
+    "error_summary": "other/...",
+    "error": {
+        "cursor_error": {".tag": "expired_cursor"}
+    }
+}"#;
+}

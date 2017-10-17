@@ -5,32 +5,33 @@ use reqwest::Response;
 use std::string::String;
 use std::io::Read;
 
+
+error_chain!{
+    foreign_links {
+        Url(::reqwest::UrlError);
+        Reqwest(::reqwest::Error);
+        Utf8(::std::string::FromUtf8Error);
+        Io(::std::io::Error);
+        Json(::serde_json::Error);
+        UrlEncodedSer(::serde_urlencoded::ser::Error);
+    }
+    errors {
+        API(api_error: APIError) {
+            description("An error occurred when interacting with Dropbox"),
+            display("{:?}", api_error),
+        }
+        HeaderNotFound(header: String) {
+            description("An expected header wasn't found"),
+            display("Couldn't find header: {}", header),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct APIError {
     status: StatusCode,
     body: String,
 }
-
-error_chain!{
-        foreign_links {
-            Url(::reqwest::UrlError);
-            Reqwest(::reqwest::Error);
-            Utf8(::std::string::FromUtf8Error);
-            Io(::std::io::Error);
-            Json(::serde_json::Error);
-            UrlEncodedSer(::serde_urlencoded::ser::Error);
-        }
-        errors {
-            API(api_error: APIError) {
-                description("An error occurred when interacting with Dropbox"),
-                display("{:?}", api_error),
-            }
-            HeaderNotFound(header: String) {
-                description("An expected header wasn't found"),
-                display("Couldn't find header: {}", header),
-            }
-        }
-    }
 
 impl From<APIError> for ErrorKind {
     fn from(api_error: APIError) -> Self {
@@ -47,4 +48,11 @@ pub fn build_error(mut resp: Response) -> Result<ErrorKind> {
             body: error_body,
         }
         .into())
+}
+
+#[derive(Deserialize)]
+pub struct DropboxError<T> {
+    pub error_summary: String,
+    pub error: T,
+    pub user_message: Option<String>,
 }

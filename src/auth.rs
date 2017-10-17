@@ -121,9 +121,10 @@ impl AuthOperations {
         Ok(serde_json::from_reader(res)?)
     }
 
-    fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
+    fn rpc_request<T, R, E>(&self, url: Url, request_body: T) -> Result<Response<R, E>>
         where T: Serialize,
-              R: DeserializeOwned
+              R: DeserializeOwned,
+              E: DeserializeOwned
     {
         let client = Client::new();
         let res = client.post(url)
@@ -133,7 +134,8 @@ impl AuthOperations {
 
         Ok(Response::try_from(res)?)
     }
-    pub fn token_from_oauth1(&self) -> Result<Response<TokenFromOAuth1Result>> {
+    // TODO fix error
+    pub fn token_from_oauth1(&self) -> Result<Response<TokenFromOAuth1Result, ()>> {
         let url = Url::parse("https://api.dropboxapi.com/2/auth/token/from_oauth1")?;
         self.rpc_request(url,
                          &TokenFromOAuth1Arg {
@@ -144,13 +146,13 @@ impl AuthOperations {
 }
 
 pub trait RevokableToken {
-    fn revoke_token(&self) -> Result<Response<()>>;
+    fn revoke_token(&self) -> Result<Response<(), ()>>;
 }
 
 impl<C> RevokableToken for C
     where C: RPCClient
 {
-    fn revoke_token(&self) -> Result<Response<()>> {
+    fn revoke_token(&self) -> Result<Response<(), ()>> {
         let url = Url::parse(BASE_URL)?.join("revoke")?;
         self.rpc_request(url, ())
     }
