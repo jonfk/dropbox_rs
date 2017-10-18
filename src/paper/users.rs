@@ -111,7 +111,9 @@ impl<T> AddPaperDocUserRequestBuilder<T>
         self
     }
 
-    pub fn send(&self) -> Result<Response<Vec<AddPaperDocUserMemberResult>, ()>> {
+    pub fn send
+        (&self)
+         -> Result<Response<Vec<AddPaperDocUserMemberResult>, super::errors::DocLookupError>> {
         let url = Url::parse(super::BASE_URL)?.join("users/add")?;
         self.client.rpc_request(url,
                                 AddPaperDocUser {

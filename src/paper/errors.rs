@@ -51,3 +51,16 @@ pub enum PaperDocUpdateError {
     DocArchived,
     DocDeleted,
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_cursor_error_deserialization() {
+        let error_json = r#"{
+    "error_summary": "other/...",
+    "error": {
+        "cursor_error": {".tag": "expired_cursor"}
+    }
+}"#;
+    }
+}
