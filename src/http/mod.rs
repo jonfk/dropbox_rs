@@ -27,7 +27,7 @@ pub enum ResponseWithErr<T> {
         status: StatusCode,
         headers: Headers,
     },
-    Err(String),
+    Err { body: String, status: StatusCode },
 }
 
 // TODO when TryFrom is stabilized
@@ -54,7 +54,10 @@ impl<T> ResponseWithErr<T>
         } else {
             let mut body = String::new();
             resp.by_ref().read_to_string(&mut body)?;
-            Ok(ResponseWithErr::Err(body))
+            Ok(ResponseWithErr::Err {
+                body: body,
+                status: status,
+            })
         }
     }
 }
@@ -66,7 +69,7 @@ pub enum ContentResponseWithErr<T, C: Read> {
         status: StatusCode,
         headers: Headers,
     },
-    Err(String),
+    Err { body: String, status: StatusCode },
 }
 
 impl<T> ContentResponseWithErr<T, ReqwestResponse>
@@ -92,7 +95,10 @@ impl<T> ContentResponseWithErr<T, ReqwestResponse>
         } else {
             let mut body = String::new();
             resp.by_ref().read_to_string(&mut body)?;
-            Ok(ContentResponseWithErr::Err(body))
+            Ok(ContentResponseWithErr::Err {
+                body: body,
+                status: status,
+            })
         }
     }
 }
