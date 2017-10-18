@@ -2,6 +2,9 @@
 pub use reqwest::StatusCode;
 use reqwest::Response;
 
+use serde_json;
+use serde::de::DeserializeOwned;
+
 use std::string::String;
 use std::io::Read;
 
@@ -16,10 +19,6 @@ error_chain!{
         UrlEncodedSer(::serde_urlencoded::ser::Error);
     }
     errors {
-        API(api_error: APIError) {
-            description("An error occurred when interacting with Dropbox"),
-            display("{:?}", api_error),
-        }
         HeaderNotFound(header: String) {
             description("An expected header wasn't found"),
             display("Couldn't find header: {}", header),
@@ -28,26 +27,26 @@ error_chain!{
 }
 
 #[derive(Debug)]
-pub struct APIError {
+pub struct APIError<E> {
     status: StatusCode,
     body: String,
+    error: E,
+    user_message: Option<String>,
 }
 
-impl From<APIError> for ErrorKind {
-    fn from(api_error: APIError) -> Self {
-        ErrorKind::API(api_error)
-    }
-}
+impl<E> APIError<E>
+    where E: DeserializeOwned
+{
+    pub fn build_error(status: StatusCode, error_body: String) -> Result<APIError<E>> {
+        let json: DropboxError<E> = serde_json::from_str(error_body.as_str())?;
 
-pub fn build_error(mut resp: Response) -> Result<ErrorKind> {
-    let mut error_body = String::new();
-    resp.read_to_string(&mut error_body)?;
-
-    Ok(APIError {
-            status: resp.status(),
+        Ok(APIError {
+            status: status,
             body: error_body,
-        }
-        .into())
+            error: json.error,
+            user_message: json.user_message,
+        })
+    }
 }
 
 #[derive(Deserialize)]
