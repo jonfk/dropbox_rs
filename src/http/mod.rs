@@ -21,21 +21,22 @@ use self::header::DropboxAPIArg;
 static DROPBOX_API_RESULT: &'static str = "Dropbox-API-Result";
 
 #[derive(Debug)]
-pub enum ResponseWithErr<T> {
+pub enum ResponseWithErr<T, E> {
     Ok {
         body: T,
         status: StatusCode,
         headers: Headers,
     },
-    Err { body: String, status: StatusCode },
+    Err(APIError<E>),
 }
 
 // TODO when TryFrom is stabilized
 //impl<T> TryFrom<ReqwestResponse> for Response<T>
-impl<T> ResponseWithErr<T>
-    where T: DeserializeOwned
+impl<T, E> ResponseWithErr<T, E>
+    where T: DeserializeOwned,
+          E: DeserializeOwned
 {
-    pub fn try_from(mut resp: ReqwestResponse) -> Result<ResponseWithErr<T>> {
+    pub fn try_from(mut resp: ReqwestResponse) -> Result<ResponseWithErr<T, E>> {
         let status = resp.status();
         let headers = resp.headers().clone();
 
@@ -52,31 +53,36 @@ impl<T> ResponseWithErr<T>
                 headers: headers,
             })
         } else {
-            let mut body = String::new();
-            resp.by_ref().read_to_string(&mut body)?;
-            Ok(ResponseWithErr::Err {
-                body: body,
+            let mut error_body = String::new();
+            resp.by_ref().read_to_string(&mut error_body)?;
+            let json: DropboxError<E> = serde_json::from_str(error_body.as_str())?;
+            Ok(ResponseWithErr::Err(APIError {
+                body: error_body,
                 status: status,
-            })
+                error: json.error,
+                user_message: json.user_message,
+            }))
         }
     }
 }
 
-pub enum ContentResponseWithErr<T, C: Read> {
+#[derive(Debug)]
+pub enum ContentResponseWithErr<T, C: Read, E> {
     Ok {
         body: T,
         content: C,
         status: StatusCode,
         headers: Headers,
     },
-    Err { body: String, status: StatusCode },
+    Err(APIError<E>),
 }
 
-impl<T> ContentResponseWithErr<T, ReqwestResponse>
-    where T: DeserializeOwned
+impl<T, E> ContentResponseWithErr<T, ReqwestResponse, E>
+    where T: DeserializeOwned,
+          E: DeserializeOwned
 {
     pub fn try_from(mut resp: ReqwestResponse)
-                    -> Result<ContentResponseWithErr<T, ReqwestResponse>> {
+                    -> Result<ContentResponseWithErr<T, ReqwestResponse, E>> {
         let status = resp.status();
         let headers = resp.headers().clone();
 
@@ -93,12 +99,15 @@ impl<T> ContentResponseWithErr<T, ReqwestResponse>
                 headers: headers.clone(),
             })
         } else {
-            let mut body = String::new();
-            resp.by_ref().read_to_string(&mut body)?;
-            Ok(ContentResponseWithErr::Err {
-                body: body,
+            let mut error_body = String::new();
+            resp.by_ref().read_to_string(&mut error_body)?;
+            let json: DropboxError<E> = serde_json::from_str(error_body.as_str())?;
+            Ok(ContentResponseWithErr::Err(APIError {
+                body: error_body,
                 status: status,
-            })
+                error: json.error,
+                user_message: json.user_message,
+            }))
         }
     }
 }
@@ -114,17 +123,19 @@ impl HasAccessToken for Dropbox {
 }
 
 pub trait RPCClient {
-    fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<ResponseWithErr<R>>
+    fn rpc_request<T, R, E>(&self, url: Url, request_body: T) -> Result<ResponseWithErr<R, E>>
         where T: Serialize,
-              R: DeserializeOwned;
+              R: DeserializeOwned,
+              E: DeserializeOwned;
 }
 
 impl<C> RPCClient for C
     where C: HasAccessToken + Clone
 {
-    fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<ResponseWithErr<R>>
+    fn rpc_request<T, R, E>(&self, url: Url, request_body: T) -> Result<ResponseWithErr<R, E>>
         where T: Serialize,
-              R: DeserializeOwned
+              R: DeserializeOwned,
+              E: DeserializeOwned
     {
         let client = ReqwestClient::new();
         let res = client.post(url)
@@ -137,27 +148,29 @@ impl<C> RPCClient for C
 }
 
 pub trait ContentUploadClient {
-    fn content_upload_request<T, S, R>(&self,
-                                       url: Url,
-                                       request_body: T,
-                                       contents: S)
-                                       -> Result<ResponseWithErr<R>>
+    fn content_upload_request<T, S, R, E>(&self,
+                                          url: Url,
+                                          request_body: T,
+                                          contents: S)
+                                          -> Result<ResponseWithErr<R, E>>
         where T: Serialize,
               S: Into<Body>,
-              R: DeserializeOwned;
+              R: DeserializeOwned,
+              E: DeserializeOwned;
 }
 
 impl<C> ContentUploadClient for C
     where C: HasAccessToken + Clone
 {
-    fn content_upload_request<T, S, R>(&self,
-                                       url: Url,
-                                       request_body: T,
-                                       contents: S)
-                                       -> Result<ResponseWithErr<R>>
+    fn content_upload_request<T, S, R, E>(&self,
+                                          url: Url,
+                                          request_body: T,
+                                          contents: S)
+                                          -> Result<ResponseWithErr<R, E>>
         where T: Serialize,
               S: Into<Body>,
-              R: DeserializeOwned
+              R: DeserializeOwned,
+              E: DeserializeOwned
     {
         let client = ReqwestClient::new();
         let res = client.post(url)
@@ -172,22 +185,27 @@ impl<C> ContentUploadClient for C
 }
 
 pub trait ContentDownloadClient<C: Read> {
-    fn content_download<T, R>(&self, url: Url, request: T) -> Result<ContentResponseWithErr<R, C>>
+    fn content_download<T, R, E>(&self,
+                                 url: Url,
+                                 request: T)
+                                 -> Result<ContentResponseWithErr<R, C, E>>
         where T: Serialize,
               R: DeserializeOwned,
-              C: Read;
+              C: Read,
+              E: DeserializeOwned;
 }
 
 
 impl<C> ContentDownloadClient<ReqwestResponse> for C
     where C: HasAccessToken + Clone
 {
-    fn content_download<T, R>(&self,
-                              url: Url,
-                              request: T)
-                              -> Result<ContentResponseWithErr<R, ReqwestResponse>>
+    fn content_download<T, R, E>(&self,
+                                 url: Url,
+                                 request: T)
+                                 -> Result<ContentResponseWithErr<R, ReqwestResponse, E>>
         where T: Serialize,
-              R: DeserializeOwned
+              R: DeserializeOwned,
+              E: DeserializeOwned
     {
         let client = ReqwestClient::new();
         let res = client.post(url)
@@ -199,3 +217,12 @@ impl<C> ContentDownloadClient<ReqwestResponse> for C
         Ok(ContentResponseWithErr::try_from(res)?)
     }
 }
+
+#[derive(Debug)]
+pub struct Response<T> {
+    body: T,
+    status: StatusCode,
+    headers: Headers,
+}
+
+impl<T> Response<T> {}

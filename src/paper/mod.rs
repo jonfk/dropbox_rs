@@ -7,7 +7,7 @@ use serde::{Serialize, Serializer};
 use reqwest::Url;
 use reqwest::Body;
 
-use errors::*;
+use self::errors::*;
 use http::{Response, ContentResponse};
 use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
 
