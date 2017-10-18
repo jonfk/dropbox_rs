@@ -3,8 +3,8 @@ use serde::{Serialize, Serializer};
 
 use reqwest::Url;
 
-use errors::*;
-use http::Response;
+use paper::errors::*;
+use http::{Response, ResponseWithErr};
 use http::RPCClient;
 
 /**
@@ -111,18 +111,20 @@ impl<T> AddPaperDocUserRequestBuilder<T>
         self
     }
 
-    pub fn send
-        (&self)
-         -> Result<Response<Vec<AddPaperDocUserMemberResult>, super::errors::DocLookupError>> {
-        let url = Url::parse(super::BASE_URL)?.join("users/add")?;
-        self.client.rpc_request(url,
-                                AddPaperDocUser {
-                                    doc_id: self.doc_id.clone(),
-                                    members: self.members.clone(),
-                                    custom_message: self.custom_message.clone(),
-                                    quiet: self.quiet,
-                                })
-    }
+    // pub fn send(&self) -> Result<Response<Vec<AddPaperDocUserMemberResult>>> {
+    //     let url = Url::parse(super::BASE_URL)?.join("users/add")?;
+    //     let resp_with_err = self.client.rpc_request(url,
+    //                                                 AddPaperDocUser {
+    //                                                     doc_id: self.doc_id.clone(),
+    //                                                     members: self.members.clone(),
+    //                                                     custom_message: self.custom_message.clone(),
+    //                                                     quiet: self.quiet,
+    //                                                 });
+    //     match resp_with_err {
+    //         ResponseWithErr::Ok(r) => Ok(r),
+    //         ResponseWithErr::Err(e) => Err(e),
+    //     }
+    // }
 }
 
 /**

@@ -9,9 +9,10 @@ use reqwest::header::{Headers, Authorization, Bearer, ContentType};
 use reqwest::Response as ReqwestResponse;
 
 use super::Dropbox;
-use errors::*;
-use errors::ErrorKind::HeaderNotFound;
+use self::errors::*;
+use self::errors::ErrorKind::HeaderNotFound;
 
+pub mod errors;
 pub mod header {
     header! { (DropboxAPIArg, "Dropbox-API-Arg") => [String] }
 }
@@ -21,12 +22,23 @@ use self::header::DropboxAPIArg;
 static DROPBOX_API_RESULT: &'static str = "Dropbox-API-Result";
 
 #[derive(Debug)]
+pub struct Response<T> {
+    pub body: T,
+    pub status: StatusCode,
+    pub headers: Headers,
+}
+
+#[derive(Debug)]
+pub struct ContentResponse<T, C: Read> {
+    pub body: T,
+    pub content: C,
+    pub status: StatusCode,
+    pub headers: Headers,
+}
+
+#[derive(Debug)]
 pub enum ResponseWithErr<T, E> {
-    Ok {
-        body: T,
-        status: StatusCode,
-        headers: Headers,
-    },
+    Ok(Response<T>),
     Err(APIError<E>),
 }
 
@@ -47,11 +59,11 @@ impl<T, E> ResponseWithErr<T, E>
             println!("\nRPC json: {}\n", body);
             //let body = serde_json::from_reader(resp)?;
             let json = serde_json::from_str(body.as_str())?;
-            Ok(ResponseWithErr::Ok {
+            Ok(ResponseWithErr::Ok(Response {
                 body: json,
                 status: status,
                 headers: headers,
-            })
+            }))
         } else {
             let mut error_body = String::new();
             resp.by_ref().read_to_string(&mut error_body)?;
@@ -68,12 +80,7 @@ impl<T, E> ResponseWithErr<T, E>
 
 #[derive(Debug)]
 pub enum ContentResponseWithErr<T, C: Read, E> {
-    Ok {
-        body: T,
-        content: C,
-        status: StatusCode,
-        headers: Headers,
-    },
+    Ok(ContentResponse<T, C>),
     Err(APIError<E>),
 }
 
@@ -92,12 +99,12 @@ impl<T, E> ContentResponseWithErr<T, ReqwestResponse, E>
             let raw_header_contents: Vec<u8> =
                 raw_header.into_iter().flat_map(|l| l.to_vec()).collect::<_>();
             let body = serde_json::from_slice(&raw_header_contents)?;
-            Ok(ContentResponseWithErr::Ok {
+            Ok(ContentResponseWithErr::Ok(ContentResponse {
                 body: body,
                 content: resp,
                 status: status,
                 headers: headers.clone(),
-            })
+            }))
         } else {
             let mut error_body = String::new();
             resp.by_ref().read_to_string(&mut error_body)?;
@@ -217,12 +224,3 @@ impl<C> ContentDownloadClient<ReqwestResponse> for C
         Ok(ContentResponseWithErr::try_from(res)?)
     }
 }
-
-#[derive(Debug)]
-pub struct Response<T> {
-    body: T,
-    status: StatusCode,
-    headers: Headers,
-}
-
-impl<T> Response<T> {}

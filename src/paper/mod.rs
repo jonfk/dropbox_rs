@@ -9,6 +9,7 @@ use reqwest::Body;
 
 use self::errors::*;
 use http::{Response, ContentResponse};
+use http::{ResponseWithErr, ContentResponseWithErr};
 use http::{RPCClient, ContentDownloadClient, ContentUploadClient};
 
 use self::users::{AddPaperDocUserRequestBuilder, UserOnPaperDocFilter, ListUsersOnPaperDocResponse,
@@ -17,230 +18,279 @@ use self::users::{AddPaperDocUserRequestBuilder, UserOnPaperDocFilter, ListUsers
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 
-pub fn archive<T: RPCClient>(client: &T,
-                             doc_id: &str)
-                             -> Result<Response<(), self::errors::DocLookupError>> {
+pub fn archive<T: RPCClient>(client: &T, doc_id: &str) -> Result<Response<()>> {
     let url = Url::parse(BASE_URL)?
         .join("archive")?;
     println!("{}", url);
     let request = RefPaperDoc { doc_id: doc_id.to_owned() };
+    let client_resp: ResponseWithErr<_, DocLookupError> = client.rpc_request(url, request)?;
 
-    client.rpc_request(url, request)
+    match client_resp {
+        ResponseWithErr::Ok(r) => Ok(r),
+        ResponseWithErr::Err(e) => Err(ErrorKind::DocLookupErr(e).into()),
+    }
 }
 
-pub fn create<T: ContentUploadClient, C: Into<Body>>
-    (client: &T,
-     import_format: ImportFormat,
-     parent_folder_id: Option<&str>,
-     content: C)
-     -> Result<Response<PaperDocCreateUpdateResult, self::errors::PaperDocCreateError>> {
-    let url = Url::parse(BASE_URL)?
-        .join("create")?;
-    println!("{}", url);
+// pub fn create<T: ContentUploadClient, C: Into<Body>>
+//     (client: &T,
+//      import_format: ImportFormat,
+//      parent_folder_id: Option<&str>,
+//      content: C)
+//      -> Result<Response<PaperDocCreateUpdateResult>> {
+//     let url = Url::parse(BASE_URL)?
+//         .join("create")?;
+//     println!("{}", url);
 
-    client.content_upload_request(url,
-                                  PaperDocCreateArgs {
-                                      import_format: import_format,
-                                      parent_folder_id: parent_folder_id.map(|x| x.to_owned()),
-                                  },
-                                  content)
-}
+//     let client_resp = client.content_upload_request(url,
+//                                                     PaperDocCreateArgs {
+//                                                         import_format: import_format,
+//                                                         parent_folder_id:
+//                                                             parent_folder_id.map(|x| x.to_owned()),
+//                                                     },
+//                                                     content);
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn download<C, T: ContentDownloadClient<C>>
-    (client: &T,
-     doc_id: &str,
-     export_format: ExportFormat)
-     -> Result<ContentResponse<PaperDocExportResult, C, self::errors::DocLookupError>>
-    where C: Read
-{
-    let url = Url::parse(BASE_URL)?
-        .join("download")?;
-    println!("{}", url);
-    client.content_download(url,
-                            PaperDocExport {
-                                doc_id: doc_id.to_owned(),
-                                export_format: export_format,
-                            })
-}
+// pub fn download<C, T: ContentDownloadClient<C>>
+//     (client: &T,
+//      doc_id: &str,
+//      export_format: ExportFormat)
+//      -> Result<ContentResponse<PaperDocExportResult, C>>
+//     where C: Read
+// {
+//     let url = Url::parse(BASE_URL)?
+//         .join("download")?;
+//     println!("{}", url);
+//     let client_resp = client.content_download(url,
+//                                               PaperDocExport {
+//                                                   doc_id: doc_id.to_owned(),
+//                                                   export_format: export_format,
+//                                               });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn list_folder_users<T: RPCClient>
-    (client: &T,
-     doc_id: &str,
-     limit: i32)
-     -> Result<Response<ListUsersOnFolderResponse, self::errors::DocLookupError>> {
-    let url = Url::parse(BASE_URL)?.join("folder_users/list")?;
-    println!("{}", url);
-    client.rpc_request(url,
-                       &ListUsersOnFolderArgs {
-                           doc_id: doc_id.to_owned(),
-                           limit: limit,
-                       })
-}
+// pub fn list_folder_users<T: RPCClient>(client: &T,
+//                                        doc_id: &str,
+//                                        limit: i32)
+//                                        -> Result<Response<ListUsersOnFolderResponse>> {
+//     let url = Url::parse(BASE_URL)?.join("folder_users/list")?;
+//     println!("{}", url);
+//     let client_resp = client.rpc_request(url,
+//                                          &ListUsersOnFolderArgs {
+//                                              doc_id: doc_id.to_owned(),
+//                                              limit: limit,
+//                                          });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn list_folder_users_continue<T: RPCClient>
-    (client: &T,
-     doc_id: &str,
-     cursor: &str)
-     -> Result<Response<ListUsersOnFolderResponse, self::errors::ListUsersCursorError>> {
-    let url = Url::parse(BASE_URL)?.join("folder_users/list/continue")?;
-    println!("{}", url);
-    client.rpc_request(url,
-                       &ListUsersOnFolderContinueArgs {
-                           doc_id: doc_id.to_owned(),
-                           cursor: cursor.to_owned(),
-                       })
-}
+// pub fn list_folder_users_continue<T: RPCClient>(client: &T,
+//                                                 doc_id: &str,
+//                                                 cursor: &str)
+//                                                 -> Result<Response<ListUsersOnFolderResponse>> {
+//     let url = Url::parse(BASE_URL)?.join("folder_users/list/continue")?;
+//     println!("{}", url);
+//     let client_resp = client.rpc_request(url,
+//                                          &ListUsersOnFolderContinueArgs {
+//                                              doc_id: doc_id.to_owned(),
+//                                              cursor: cursor.to_owned(),
+//                                          });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn get_folder_info<T: RPCClient>
-    (client: &T,
-     doc_id: &str)
-     -> Result<Response<FoldersContainingPaperDoc, self::errors::DocLookupError>> {
-    let url = Url::parse(BASE_URL)?.join("get_folder_info")?;
-    println!("{}", url);
-    client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })
-}
+// pub fn get_folder_info<T: RPCClient>(client: &T,
+//                                      doc_id: &str)
+//                                      -> Result<Response<FoldersContainingPaperDoc>> {
+//     let url = Url::parse(BASE_URL)?.join("get_folder_info")?;
+//     println!("{}", url);
+//     match client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() }) {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-// TODO implement a builder for optional parameters?
-pub fn list<T: RPCClient>(client: &T,
-                          filter_by: Option<ListPaperDocsFilterBy>,
-                          sort_by: Option<ListPaperDocsSortBy>,
-                          sort_order: Option<ListPaperDocsSortOrder>,
-                          limit: usize)
-                          -> Result<Response<ListPaperDocsResponse, ()>> {
-    let url = Url::parse(BASE_URL)?
-        .join("list")?;
-    println!("{}", url);
+// // TODO implement a builder for optional parameters?
+// pub fn list<T: RPCClient>(client: &T,
+//                           filter_by: Option<ListPaperDocsFilterBy>,
+//                           sort_by: Option<ListPaperDocsSortBy>,
+//                           sort_order: Option<ListPaperDocsSortOrder>,
+//                           limit: usize)
+//                           -> Result<Response<ListPaperDocsResponse>> {
+//     let url = Url::parse(BASE_URL)?
+//         .join("list")?;
+//     println!("{}", url);
 
-    client.rpc_request(url,
-                       &ListPaperDocsArgs {
-                           filter_by: filter_by,
-                           sort_by: sort_by,
-                           sort_order: sort_order,
-                           limit: limit,
-                       })
-}
+//     let client_resp = client.rpc_request(url,
+//                                          &ListPaperDocsArgs {
+//                                              filter_by: filter_by,
+//                                              sort_by: sort_by,
+//                                              sort_order: sort_order,
+//                                              limit: limit,
+//                                          });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn list_continue<T: RPCClient>
-    (client: &T,
-     cursor: &str)
-     -> Result<Response<ListPaperDocsResponse, self::errors::ListDocsCursorError>> {
-    let url = Url::parse(BASE_URL)?
-        .join("list/")?
-        .join("continue")?;
-    println!("{}", url);
+// pub fn list_continue<T: RPCClient>(client: &T,
+//                                    cursor: &str)
+//                                    -> Result<Response<ListPaperDocsResponse>> {
+//     let url = Url::parse(BASE_URL)?
+//         .join("list/")?
+//         .join("continue")?;
+//     println!("{}", url);
 
-    client.rpc_request(url,
-                       &ListPaperDocsContinueArgs { cursor: cursor.to_owned() })
-}
+//     let client_resp = client.rpc_request(url,
+//                                          &ListPaperDocsContinueArgs { cursor: cursor.to_owned() });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn permanently_delete<T: RPCClient>(client: &T,
-                                        doc_id: &str)
-                                        -> Result<Response<(), self::errors::DocLookupError>> {
-    let url = Url::parse(BASE_URL)?
-        .join("permanently_delete")?;
-    println!("{}", url);
+// pub fn permanently_delete<T: RPCClient>(client: &T, doc_id: &str) -> Result<Response<()>> {
+//     let url = Url::parse(BASE_URL)?
+//         .join("permanently_delete")?;
+//     println!("{}", url);
 
-    client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })
-}
+//     let client_resp = client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn get_sharing_policy<T: RPCClient>
-    (client: &T,
-     doc_id: &str)
-     -> Result<Response<SharingPolicy, self::errors::DocLookupError>> {
-    let url = Url::parse(BASE_URL)?
-        .join("sharing_policy/get")?;
-    println!("{}", url);
+// pub fn get_sharing_policy<T: RPCClient>(client: &T,
+//                                         doc_id: &str)
+//                                         -> Result<Response<SharingPolicy>> {
+//     let url = Url::parse(BASE_URL)?
+//         .join("sharing_policy/get")?;
+//     println!("{}", url);
 
-    client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })
-}
+//     let client_resp = client.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn set_sharing_policy<T: RPCClient>(client: &T,
-                                        doc_id: &str,
-                                        public_sharing_policy: Option<SharingPublicPolicyType>,
-                                        team_sharing_policy: Option<SharingTeamPolicyType>)
-                                        -> Result<Response<(), self::errors::DocLookupError>> {
-    let url = Url::parse(BASE_URL)?
-        .join("sharing_policy/set")?;
-    println!("{}", url);
+// pub fn set_sharing_policy<T: RPCClient>(client: &T,
+//                                         doc_id: &str,
+//                                         public_sharing_policy: Option<SharingPublicPolicyType>,
+//                                         team_sharing_policy: Option<SharingTeamPolicyType>)
+//                                         -> Result<Response<()>> {
+//     let url = Url::parse(BASE_URL)?
+//         .join("sharing_policy/set")?;
+//     println!("{}", url);
 
-    client.rpc_request(url,
-                       &PaperDocSharingPolicy {
-                           doc_id: doc_id.to_owned(),
-                           sharing_policy: SharingPolicy {
-                               public_sharing_policy: public_sharing_policy,
-                               team_sharing_policy: team_sharing_policy,
-                           },
-                       })
-}
+//     let client_resp = client.rpc_request(url,
+//                                          &PaperDocSharingPolicy {
+//                                              doc_id: doc_id.to_owned(),
+//                                              sharing_policy: SharingPolicy {
+//                                                  public_sharing_policy: public_sharing_policy,
+//                                                  team_sharing_policy: team_sharing_policy,
+//                                              },
+//                                          });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn update<T: ContentUploadClient, C: Into<Body>>
-    (client: &T,
-     doc_id: &str,
-     doc_update_policy: PaperDocUpdatePolicy,
-     revision: i64,
-     import_format: ImportFormat,
-     content: C)
-     -> Result<Response<PaperDocCreateUpdateResult, self::errors::PaperDocUpdateError>> {
+// pub fn update<T: ContentUploadClient, C: Into<Body>>
+//     (client: &T,
+//      doc_id: &str,
+//      doc_update_policy: PaperDocUpdatePolicy,
+//      revision: i64,
+//      import_format: ImportFormat,
+//      content: C)
+//      -> Result<Response<PaperDocCreateUpdateResult>> {
 
-    let url = Url::parse(BASE_URL)?
-        .join("update")?;
-    println!("{}", url);
+//     let url = Url::parse(BASE_URL)?
+//         .join("update")?;
+//     println!("{}", url);
 
-    client.content_upload_request(url,
-                                  PaperDocUpdateArgs {
-                                      doc_id: doc_id.to_owned(),
-                                      doc_update_policy: doc_update_policy,
-                                      revision: revision,
-                                      import_format: import_format,
-                                  },
-                                  content)
-}
+//     let client_resp = client.content_upload_request(url,
+//                                                     PaperDocUpdateArgs {
+//                                                         doc_id: doc_id.to_owned(),
+//                                                         doc_update_policy: doc_update_policy,
+//                                                         revision: revision,
+//                                                         import_format: import_format,
+//                                                     },
+//                                                     content);
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn users_add<T: RPCClient + Clone>(client: &T,
-                                       doc_id: &str)
-                                       -> AddPaperDocUserRequestBuilder<T> {
-    AddPaperDocUserRequestBuilder::new(client, doc_id)
-}
+// pub fn users_add<T: RPCClient + Clone>(client: &T,
+//                                        doc_id: &str)
+//                                        -> AddPaperDocUserRequestBuilder<T> {
+//     AddPaperDocUserRequestBuilder::new(client, doc_id)
+// }
 
-pub fn users_list<T: RPCClient>
-    (client: &T,
-     doc_id: &str,
-     limit: i32,
-     filter_by: UserOnPaperDocFilter)
-     -> Result<Response<ListUsersOnPaperDocResponse, self::errors::DocLookupError>> {
-    let url = Url::parse(BASE_URL)?.join("users/list")?;
-    client.rpc_request(url,
-                       &ListUsersOnPaperDocArgs {
-                           doc_id: doc_id.to_owned(),
-                           limit: limit,
-                           filter_by: filter_by,
-                       })
-}
+// pub fn users_list<T: RPCClient>(client: &T,
+//                                 doc_id: &str,
+//                                 limit: i32,
+//                                 filter_by: UserOnPaperDocFilter)
+//                                 -> Result<Response<ListUsersOnPaperDocResponse>> {
+//     let url = Url::parse(BASE_URL)?.join("users/list")?;
+//     let client_resp = client.rpc_request(url,
+//                                          &ListUsersOnPaperDocArgs {
+//                                              doc_id: doc_id.to_owned(),
+//                                              limit: limit,
+//                                              filter_by: filter_by,
+//                                          });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn users_list_continue<T: RPCClient>
-    (client: &T,
-     doc_id: &str,
-     cursor: &str)
-     -> Result<Response<ListUsersOnPaperDocResponse, self::errors::ListUsersCursorError>> {
-    let url = Url::parse(BASE_URL)?.join("users/list/continue")?;
-    client.rpc_request(url,
-                       &ListUsersOnPaperDocContinueArgs {
-                           doc_id: doc_id.to_owned(),
-                           cursor: cursor.to_owned(),
-                       })
-}
+// pub fn users_list_continue<T: RPCClient>(client: &T,
+//                                          doc_id: &str,
+//                                          cursor: &str)
+//                                          -> Result<Response<ListUsersOnPaperDocResponse>> {
+//     let url = Url::parse(BASE_URL)?.join("users/list/continue")?;
+//     let client_resp = client.rpc_request(url,
+//                                          &ListUsersOnPaperDocContinueArgs {
+//                                              doc_id: doc_id.to_owned(),
+//                                              cursor: cursor.to_owned(),
+//                                          });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
-pub fn users_remove<T: RPCClient>(client: &T,
-                                  doc_id: &str,
-                                  member: &MemberSelector)
-                                  -> Result<Response<(), self::errors::DocLookupError>> {
-    let url = Url::parse(BASE_URL)?.join("users/remove")?;
-    client.rpc_request(url,
-                       &RemovePaperDocUser {
-                           doc_id: doc_id.to_owned(),
-                           member: member.clone(),
-                       })
-}
+// pub fn users_remove<T: RPCClient>(client: &T,
+//                                   doc_id: &str,
+//                                   member: &MemberSelector)
+//                                   -> Result<Response<()>> {
+//     let url = Url::parse(BASE_URL)?.join("users/remove")?;
+//     let client_resp = client.rpc_request(url,
+//                                          &RemovePaperDocUser {
+//                                              doc_id: doc_id.to_owned(),
+//                                              member: member.clone(),
+//                                          });
+//     match client_resp {
+//         ResponseWithErr::Ok(r) => Ok(r),
+//         ResponseWithErr::Err(e) => Err(e),
+//     }
+// }
 
 
 /**

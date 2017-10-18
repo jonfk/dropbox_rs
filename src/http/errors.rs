@@ -28,10 +28,10 @@ error_chain!{
 
 #[derive(Debug)]
 pub struct APIError<E> {
-    status: StatusCode,
-    body: String,
-    error: E,
-    user_message: Option<String>,
+    pub status: StatusCode,
+    pub body: String,
+    pub error: E,
+    pub user_message: Option<String>,
 }
 
 impl<E> APIError<E>

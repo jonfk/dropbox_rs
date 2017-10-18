@@ -1,7 +1,10 @@
 
-use errors::APIError;
+use http::errors::APIError;
 
 error_chain!{
+    links {
+        Http(::http::errors::Error, ::http::errors::ErrorKind);
+    }
     foreign_links {
         Url(::reqwest::UrlError);
         Reqwest(::reqwest::Error);
