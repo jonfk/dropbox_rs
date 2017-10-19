@@ -8,8 +8,8 @@ use std::collections::HashMap;
 
 use auth::AuthorizationResponse::{CodeResponse, TokenResponse};
 
-use errors::*;
-use http::{Response, RPCClient};
+use self::errors::*;
+use http::{Response, ResponseWithErr, RPCClient};
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/auth/token/";
 
@@ -121,9 +121,10 @@ impl AuthOperations {
         Ok(serde_json::from_reader(res)?)
     }
 
-    fn rpc_request<T, R>(&self, url: Url, request_body: T) -> Result<Response<R>>
+    fn rpc_request<T, R, E>(&self, url: Url, request_body: T) -> Result<ResponseWithErr<R, E>>
         where T: Serialize,
-              R: DeserializeOwned
+              R: DeserializeOwned,
+              E: DeserializeOwned
     {
         let client = Client::new();
         let res = client.post(url)
@@ -131,15 +132,20 @@ impl AuthOperations {
             .json(&request_body)
             .send()?;
 
-        Ok(Response::try_from(res)?)
+        Ok(ResponseWithErr::try_from(res)?)
     }
+    // TODO fix error
     pub fn token_from_oauth1(&self) -> Result<Response<TokenFromOAuth1Result>> {
         let url = Url::parse("https://api.dropboxapi.com/2/auth/token/from_oauth1")?;
-        self.rpc_request(url,
+        let resp_with_err: ResponseWithErr<_, TokenFromOAuth1Error> = self.rpc_request(url,
                          &TokenFromOAuth1Arg {
                              oauth1_token: self.client_id.clone(),
                              oauth1_token_secret: self.client_secret.clone(),
-                         })
+                         })?;
+        match resp_with_err {
+            ResponseWithErr::Ok(r) => Ok(r),
+            ResponseWithErr::Err(e) => Err(ErrorKind::TokenFromOAuth1Err(e).into()),
+        }
     }
 }
 
@@ -152,7 +158,12 @@ impl<C> RevokableToken for C
 {
     fn revoke_token(&self) -> Result<Response<()>> {
         let url = Url::parse(BASE_URL)?.join("revoke")?;
-        self.rpc_request(url, ())
+        let resp_with_err: ResponseWithErr<_, ()> = self.rpc_request(url, ())?;
+
+        match resp_with_err {
+            ResponseWithErr::Ok(r) => Ok(r),
+            ResponseWithErr::Err(_) => unreachable!(),
+        }
     }
 }
 
@@ -165,4 +176,41 @@ pub struct TokenFromOAuth1Arg {
 #[derive(PartialEq,Eq,Debug,Clone,Serialize,Deserialize)]
 pub struct TokenFromOAuth1Result {
     pub oauth2_token: String,
+}
+
+mod errors {
+    use http::errors::APIError;
+
+    error_chain!{
+        links {
+            Http(::http::errors::Error, ::http::errors::ErrorKind);
+        }
+        foreign_links {
+            Url(::reqwest::UrlError);
+            Reqwest(::reqwest::Error);
+            Utf8(::std::string::FromUtf8Error);
+            Io(::std::io::Error);
+            Json(::serde_json::Error);
+            UrlEncodedSer(::serde_urlencoded::ser::Error);
+        }
+        errors {
+            TokenFromOAuth1Err(error: APIError<TokenFromOAuth1Error>) {
+                description("TokenFromOAuth1Error"),
+                display("{:?}", error)
+            }
+        }
+    }
+
+    #[derive(PartialEq,Eq,Debug,Copy,Clone,Serialize,Deserialize)]
+    #[serde(tag = ".tag", rename_all = "snake_case")]
+    pub enum TokenFromOAuth1Error {
+        InvalidOauth1TokenInfo,
+        AppIdMismatch,
+    }
+
+    impl From<APIError<TokenFromOAuth1Error>> for ErrorKind {
+        fn from(error: APIError<TokenFromOAuth1Error>) -> Self {
+            ErrorKind::TokenFromOAuth1Err(error)
+        }
+    }
 }

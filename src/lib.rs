@@ -1,3 +1,4 @@
+#![recursion_limit="1024"]
 
 extern crate reqwest;
 #[macro_use]
@@ -14,7 +15,6 @@ extern crate error_chain;
 
 pub mod auth;
 pub mod paper;
-pub mod errors;
 pub mod http;
 
 #[derive(Clone)]
