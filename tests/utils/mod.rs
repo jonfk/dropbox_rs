@@ -15,7 +15,6 @@ pub fn get_dropbox_client() -> Dropbox {
     Dropbox::new(&access_code)
 }
 
-
 pub fn get_dropbox_client_revokable() -> Dropbox {
     dotenv().ok();
 
