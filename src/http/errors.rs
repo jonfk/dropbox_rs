@@ -1,12 +1,10 @@
 
 pub use reqwest::StatusCode;
-use reqwest::Response;
 
 use serde_json;
 use serde::de::DeserializeOwned;
 
 use std::string::String;
-use std::io::Read;
 
 
 error_chain!{
