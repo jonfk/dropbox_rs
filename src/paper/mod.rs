@@ -1,3 +1,9 @@
+//! [Dropbox Paper HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper)
+//!
+//! This namespace contains endpoints and data types for managing docs and folders in Dropbox Paper.
+//!
+//!
+
 pub mod users;
 pub mod errors;
 
@@ -19,6 +25,7 @@ use self::users::{AddPaperDocUserRequestBuilder, UserOnPaperDocFilter, ListUsers
 
 static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 
+/// A client to interface with the endpoints in the Paper namespace of the Dropbox APIs
 #[derive(Debug,Clone)]
 pub struct Paper {
     access_token: Rc<String>,
@@ -35,6 +42,10 @@ impl Paper {
         Paper { access_token: access_token.clone() }
     }
 
+    /// Marks the given Paper doc as archived.
+    /// Note: This action can be performed or undone by anyone with edit permissions to the doc.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-archive)
     pub fn archive(&self, doc_id: &str) -> Result<Response<()>> {
         let url = Url::parse(BASE_URL)?
             .join("archive")?;
@@ -48,6 +59,9 @@ impl Paper {
         }
     }
 
+    /// Creates a new Paper doc with the provided content.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-create)
     pub fn create<C: Into<Body>>(&self,
                                  import_format: ImportFormat,
                                  parent_folder_id: Option<&str>,
@@ -69,6 +83,9 @@ impl Paper {
         }
     }
 
+    /// Exports and downloads Paper doc either as HTML or markdown.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-download)
     pub fn download(&self,
                     doc_id: &str,
                     export_format: ExportFormat)
@@ -87,6 +104,9 @@ impl Paper {
         }
     }
 
+    /// Lists the users who are explicitly invited to the Paper folder in which the Paper doc is contained. For private folders all users (including owner) shared on the folder are listed and for team folders all non-team users shared on the folder are returned.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-folder_users-list)
     pub fn list_folder_users(&self,
                              doc_id: &str,
                              limit: i32)
@@ -104,6 +124,9 @@ impl Paper {
         }
     }
 
+    /// Once a cursor has been retrieved from docs/folder_users/list, use this to paginate through all users on the Paper folder.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-folder_users-list-continue)
     pub fn list_folder_users_continue(&self,
                                       doc_id: &str,
                                       cursor: &str)
@@ -121,6 +144,13 @@ impl Paper {
         }
     }
 
+    /// Retrieves folder information for the given Paper doc. This includes:
+    /// - folder sharing policy; permissions for subfolders are set by the top-level folder.
+    /// - full 'filepath', i.e. the list of folders (both folderId and folderName) from the root folder to the folder directly containing the Paper doc.
+    ///
+    /// Note: If the Paper doc is not in any folder (aka unfiled) the response will be empty.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-get_folder_info)
     pub fn get_folder_info(&self, doc_id: &str) -> Result<Response<FoldersContainingPaperDoc>> {
         let url = Url::parse(BASE_URL)?.join("get_folder_info")?;
         println!("{}", url);
@@ -131,6 +161,9 @@ impl Paper {
         }
     }
 
+    /// Return the list of all Paper docs according to the argument specifications. To iterate over through the full pagination, pass the cursor to docs/list/continue.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-list)
     // TODO implement a builder for optional parameters?
     pub fn list(&self,
                 filter_by: Option<ListPaperDocsFilterBy>,
@@ -158,6 +191,9 @@ impl Paper {
         }
     }
 
+    /// Once a cursor has been retrieved from docs/list, use this to paginate through all Paper doc.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-list-continue)
     pub fn list_continue(&self, cursor: &str) -> Result<Response<ListPaperDocsResponse>> {
         let url = Url::parse(BASE_URL)?
             .join("list/")?
@@ -172,6 +208,11 @@ impl Paper {
         }
     }
 
+    /// Permanently deletes the given Paper doc. This operation is final as the doc cannot be recovered.
+    ///
+    /// Note: This action can be performed only by the doc owner.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-permanently_delete)
     pub fn permanently_delete(&self, doc_id: &str) -> Result<Response<()>> {
         let url = Url::parse(BASE_URL)?
             .join("permanently_delete")?;
@@ -184,6 +225,9 @@ impl Paper {
         }
     }
 
+    /// Gets the default sharing policy for the given Paper doc.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-sharing_policy-get)
     pub fn get_sharing_policy(&self, doc_id: &str) -> Result<Response<SharingPolicy>> {
         let url = Url::parse(BASE_URL)?
             .join("sharing_policy/get")?;
@@ -196,6 +240,11 @@ impl Paper {
         }
     }
 
+    /// Sets the default sharing policy for the given Paper doc. The default 'team_sharing_policy' can be changed only by teams, omit this field for personal accounts.
+    ///
+    /// Note: 'public_sharing_policy' cannot be set to the value 'disabled' because this setting can be changed only via the team admin console.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-sharing_policy-set)
     pub fn set_sharing_policy(&self,
                               doc_id: &str,
                               public_sharing_policy: Option<SharingPublicPolicyType>,
@@ -219,6 +268,9 @@ impl Paper {
         }
     }
 
+    /// Updates an existing Paper doc with the provided content.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-update)
     pub fn update<C: Into<Body>>(&self,
                                  doc_id: &str,
                                  doc_update_policy: PaperDocUpdatePolicy,
@@ -245,10 +297,19 @@ impl Paper {
         }
     }
 
+    /// Allows an owner or editor to add users to a Paper doc or change their permissions using their email address or Dropbox account ID.
+    ///
+    /// Note: The Doc owner's permissions cannot be changed.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-users-add)
     pub fn users_add(&self, doc_id: &str) -> AddPaperDocUserRequestBuilder<Paper> {
         AddPaperDocUserRequestBuilder::new(self, doc_id)
     }
 
+    /// Lists all users who visited the Paper doc or users with explicit access. This call excludes users who have been removed. The list is sorted by the date of the visit or the share date.
+    /// The list will include both users, the explicitly shared ones as well as those who came in using the Paper url link.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-users-list)
     pub fn users_list(&self,
                       doc_id: &str,
                       limit: i32,
@@ -267,6 +328,9 @@ impl Paper {
         }
     }
 
+    /// Once a cursor has been retrieved from docs/users/list, use this to paginate through all users on the Paper doc.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-users-list-continue)
     pub fn users_list_continue(&self,
                                doc_id: &str,
                                cursor: &str)
@@ -283,6 +347,11 @@ impl Paper {
         }
     }
 
+    /// Allows an owner or editor to remove users from a Paper doc using their email address or Dropbox account ID.
+    ///
+    /// Note: Doc owner cannot be removed.
+    ///
+    /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-users-remove)
     pub fn users_remove(&self, doc_id: &str, member: &MemberSelector) -> Result<Response<()>> {
         let url = Url::parse(BASE_URL)?.join("users/remove")?;
         let resp_w_err = self.rpc_request(url,

@@ -16,7 +16,7 @@ Rust bindings to the Dropbox API
 
 
 ## Further improvements
-- [ ] Better error handling. Deserialize errors into known types
+- [x] Better error handling. Deserialize errors into known types
 - [ ] Add logging and logging configuration
     - I like structured logging and slog looks really good https://github.com/slog-rs/slog
     - It would be nice if we could compile out logging as a feature
