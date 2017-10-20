@@ -6,8 +6,7 @@ use reqwest::Url;
 use reqwest::Body;
 use reqwest::Response as ReqwestResponse;
 
-use std::borrow::Cow;
-use std::borrow::Borrow;
+use std::rc::Rc;
 
 use self::errors::*;
 use http::{Response, ContentResponse};
@@ -22,7 +21,7 @@ static BASE_URL: &'static str = "https://api.dropboxapi.com/2/paper/docs/";
 
 #[derive(Debug,Clone)]
 pub struct Paper {
-    access_token: String,
+    access_token: Rc<String>,
 }
 
 impl ::http::HasAccessToken for Paper {
@@ -32,8 +31,8 @@ impl ::http::HasAccessToken for Paper {
 }
 
 impl Paper {
-    pub fn new(access_token: &str) -> Paper {
-        Paper { access_token: access_token.to_owned() }
+    pub fn new(access_token: Rc<String>) -> Paper {
+        Paper { access_token: access_token.clone() }
     }
 
     pub fn archive(&self, doc_id: &str) -> Result<Response<()>> {

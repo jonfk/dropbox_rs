@@ -17,22 +17,22 @@ pub mod auth;
 pub mod paper;
 pub mod http;
 
-use std::borrow::Cow;
+use std::rc::Rc;
 
 use paper::Paper;
 
 #[derive(Clone)]
 pub struct Dropbox {
-    access_token: String,
+    access_token: Rc<String>,
     paper: Paper,
 }
 
 impl Dropbox {
     pub fn new(access_token: &str) -> Dropbox {
-        let dropbox_access_token = access_token.to_owned();
+        let dropbox_access_token = Rc::new(access_token.to_owned());
         Dropbox {
-            access_token: dropbox_access_token,
-            paper: Paper::new(access_token),
+            access_token: dropbox_access_token.clone(),
+            paper: Paper::new(dropbox_access_token),
         }
     }
 
