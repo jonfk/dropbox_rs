@@ -55,9 +55,7 @@ impl<T, E> ResponseWithErr<T, E>
         if status.is_success() {
             let mut body = String::new();
             resp.by_ref().read_to_string(&mut body)?;
-            // TODO replace with proper log.debug
-            println!("\nRPC json: {}\n", body);
-            //let body = serde_json::from_reader(resp)?;
+            info!("[response_body = {}]", body);
             let json = serde_json::from_str(body.as_str())?;
             Ok(ResponseWithErr::Ok(Response {
                 body: json,
@@ -99,6 +97,7 @@ impl<T, E> ContentResponseWithErr<T, ReqwestResponse, E>
             let raw_header_contents: Vec<u8> =
                 raw_header.into_iter().flat_map(|l| l.to_vec()).collect::<_>();
             let body = serde_json::from_slice(&raw_header_contents)?;
+            //info!("[response_body = {}]", body);
             Ok(ContentResponseWithErr::Ok(ContentResponse {
                 body: body,
                 content: resp,
@@ -145,9 +144,12 @@ impl<C> RPCClient for C
               E: DeserializeOwned
     {
         let client = ReqwestClient::new();
+        let req_arg = serde_json::to_string(&request_body)?;
+        info!("[RPC] [url = {}] [request_body = {}]", url, req_arg);
         let res = client.post(url)
             .header(Authorization(Bearer { token: self.access_token().to_owned() }))
-            .json(&request_body)
+            .header(ContentType::json())
+            .body(req_arg)
             .send()?;
 
         Ok(ResponseWithErr::try_from(res)?)
@@ -180,10 +182,14 @@ impl<C> ContentUploadClient for C
               E: DeserializeOwned
     {
         let client = ReqwestClient::new();
+        let req_arg = serde_json::to_string(&request_body)?;
+        info!("[ContentUpload] [url = {}] [request_body = {}]",
+              url,
+              req_arg);
         let res = client.post(url)
             .header(Authorization(Bearer { token: self.access_token().to_owned() }))
             .header(ContentType::octet_stream())
-            .header(DropboxAPIArg(serde_json::to_string(&request_body)?))
+            .header(DropboxAPIArg(req_arg))
             .body(contents)
             .send()?;
 
@@ -215,10 +221,14 @@ impl<C> ContentDownloadClient<ReqwestResponse> for C
               E: DeserializeOwned
     {
         let client = ReqwestClient::new();
+        let req_arg = serde_json::to_string(&request)?;
+        info!("[ContentUpload] [url = {}] [request_body = {}]",
+              url,
+              req_arg);
         let res = client.post(url)
             .header(Authorization(Bearer { token: self.access_token().to_owned() }))
             .header(ContentType::octet_stream())
-            .header(DropboxAPIArg(serde_json::to_string(&request)?))
+            .header(DropboxAPIArg(req_arg))
             .send()?;
 
         Ok(ContentResponseWithErr::try_from(res)?)

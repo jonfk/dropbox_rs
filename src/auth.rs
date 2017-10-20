@@ -4,6 +4,7 @@ use serde_json;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use reqwest::{Url, Client};
+use reqwest::header::ContentType;
 use std::collections::HashMap;
 
 use auth::AuthorizationResponse::{CodeResponse, TokenResponse};
@@ -117,7 +118,6 @@ impl AuthOperations {
         let res = client.post(url)
             .send()?;
 
-        println!("{:?}", res);
         Ok(serde_json::from_reader(res)?)
     }
 
@@ -127,14 +127,17 @@ impl AuthOperations {
               E: DeserializeOwned
     {
         let client = Client::new();
+        let req_arg = serde_json::to_string(&request_body)?;
+        info!("[RPC] [url = {}] [request_body = {}]", url, req_arg);
         let res = client.post(url)
             .basic_auth(self.client_id.as_str(), Some(self.client_secret.as_str()))
-            .json(&request_body)
+            .header(ContentType::json())
+            .body(req_arg)
             .send()?;
 
         Ok(ResponseWithErr::try_from(res)?)
     }
-    // TODO fix error
+
     pub fn token_from_oauth1(&self) -> Result<Response<TokenFromOAuth1Result>> {
         let url = Url::parse("https://api.dropboxapi.com/2/auth/token/from_oauth1")?;
         let resp_with_err: ResponseWithErr<_, TokenFromOAuth1Error> = self.rpc_request(url,

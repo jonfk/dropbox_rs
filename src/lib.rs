@@ -1,15 +1,15 @@
 #![recursion_limit="1024"]
 
+#[macro_use]
+extern crate log;
 extern crate reqwest;
 #[macro_use]
 extern crate hyper;
 extern crate serde;
 extern crate serde_json;
 extern crate serde_urlencoded;
-
 #[macro_use]
 extern crate serde_derive;
-
 #[macro_use]
 extern crate error_chain;
 

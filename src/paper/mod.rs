@@ -49,7 +49,6 @@ impl Paper {
     pub fn archive(&self, doc_id: &str) -> Result<Response<()>> {
         let url = Url::parse(BASE_URL)?
             .join("archive")?;
-        println!("{}", url);
         let request = RefPaperDoc { doc_id: doc_id.to_owned() };
         let resp_w_err: ResponseWithErr<_, DocLookupError> = self.rpc_request(url, request)?;
 
@@ -69,7 +68,6 @@ impl Paper {
                                  -> Result<Response<PaperDocCreateUpdateResult>> {
         let url = Url::parse(BASE_URL)?
             .join("create")?;
-        println!("{}", url);
 
         let resp_w_err = self.content_upload_request(url,
                                     PaperDocCreateArgs {
@@ -92,7 +90,6 @@ impl Paper {
                     -> Result<ContentResponse<PaperDocExportResult, ReqwestResponse>> {
         let url = Url::parse(BASE_URL)?
             .join("download")?;
-        println!("{}", url);
         let resp_w_err = self.content_download(url,
                               PaperDocExport {
                                   doc_id: doc_id.to_owned(),
@@ -112,7 +109,6 @@ impl Paper {
                              limit: i32)
                              -> Result<Response<ListUsersOnFolderResponse>> {
         let url = Url::parse(BASE_URL)?.join("folder_users/list")?;
-        println!("{}", url);
         let resp_w_err = self.rpc_request(url,
                          &ListUsersOnFolderArgs {
                              doc_id: doc_id.to_owned(),
@@ -132,7 +128,6 @@ impl Paper {
                                       cursor: &str)
                                       -> Result<Response<ListUsersOnFolderResponse>> {
         let url = Url::parse(BASE_URL)?.join("folder_users/list/continue")?;
-        println!("{}", url);
         let resp_w_err = self.rpc_request(url,
                          &ListUsersOnFolderContinueArgs {
                              doc_id: doc_id.to_owned(),
@@ -153,7 +148,6 @@ impl Paper {
     /// [HTTP API Documentation](https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-get_folder_info)
     pub fn get_folder_info(&self, doc_id: &str) -> Result<Response<FoldersContainingPaperDoc>> {
         let url = Url::parse(BASE_URL)?.join("get_folder_info")?;
-        println!("{}", url);
         let resp_w_err = self.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })?;
         match resp_w_err {
             ResponseWithErr::Ok(r) => Ok(r),
@@ -173,7 +167,6 @@ impl Paper {
                 -> Result<Response<ListPaperDocsResponse>> {
         let url = Url::parse(BASE_URL)?
             .join("list")?;
-        println!("{}", url);
 
         let resp_w_err: ResponseWithErr<_, ()> = self.rpc_request(url,
                          &ListPaperDocsArgs {
@@ -198,7 +191,6 @@ impl Paper {
         let url = Url::parse(BASE_URL)?
             .join("list/")?
             .join("continue")?;
-        println!("{}", url);
 
         let resp_w_err = self.rpc_request(url,
                          &ListPaperDocsContinueArgs { cursor: cursor.to_owned() })?;
@@ -216,7 +208,6 @@ impl Paper {
     pub fn permanently_delete(&self, doc_id: &str) -> Result<Response<()>> {
         let url = Url::parse(BASE_URL)?
             .join("permanently_delete")?;
-        println!("{}", url);
 
         let resp_w_err = self.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })?;
         match resp_w_err {
@@ -231,7 +222,6 @@ impl Paper {
     pub fn get_sharing_policy(&self, doc_id: &str) -> Result<Response<SharingPolicy>> {
         let url = Url::parse(BASE_URL)?
             .join("sharing_policy/get")?;
-        println!("{}", url);
 
         let resp_w_err = self.rpc_request(url, &RefPaperDoc { doc_id: doc_id.to_owned() })?;
         match resp_w_err {
@@ -252,7 +242,6 @@ impl Paper {
                               -> Result<Response<()>> {
         let url = Url::parse(BASE_URL)?
             .join("sharing_policy/set")?;
-        println!("{}", url);
 
         let resp_w_err = self.rpc_request(url,
                          &PaperDocSharingPolicy {
@@ -281,7 +270,6 @@ impl Paper {
 
         let url = Url::parse(BASE_URL)?
             .join("update")?;
-        println!("{}", url);
 
         let resp_w_err = self.content_upload_request(url,
                                     PaperDocUpdateArgs {
