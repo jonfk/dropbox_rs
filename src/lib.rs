@@ -31,7 +31,7 @@ impl Dropbox {
     pub fn new(access_token: &str) -> Dropbox {
         let dropbox_access_token = Rc::new(access_token.to_owned());
         Dropbox {
-            access_token: dropbox_access_token.clone(),
+            access_token: Rc::clone(&dropbox_access_token),
             paper: Paper::new(dropbox_access_token),
         }
     }

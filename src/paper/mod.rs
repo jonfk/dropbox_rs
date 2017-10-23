@@ -39,7 +39,7 @@ impl ::http::HasAccessToken for Paper {
 
 impl Paper {
     pub fn new(access_token: Rc<String>) -> Paper {
-        Paper { access_token: access_token.clone() }
+        Paper { access_token: Rc::clone(&access_token) }
     }
 
     /// Marks the given Paper doc as archived.

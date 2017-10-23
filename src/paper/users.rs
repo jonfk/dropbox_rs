@@ -95,7 +95,7 @@ impl<T> AddPaperDocUserRequestBuilder<T>
                       -> &mut AddPaperDocUserRequestBuilder<T> {
         self.members.push(AddMember {
             member: member.clone(),
-            permission_level: permission_level.clone(),
+            permission_level: *permission_level,
         });
         self
     }
