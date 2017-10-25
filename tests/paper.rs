@@ -13,7 +13,6 @@ use std::ops::Index;
 
 use uuid::Uuid;
 
-use dropbox_rs::paper;
 use dropbox_rs::Dropbox;
 use dropbox_rs::paper::{ListPaperDocsSortBy, ImportFormat, ExportFormat, SharingPolicy,
                         SharingPublicPolicyType, PaperDocUpdatePolicy, PaperDocCreateUpdateResult};
