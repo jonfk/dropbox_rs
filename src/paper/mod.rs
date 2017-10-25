@@ -10,7 +10,6 @@ pub mod errors;
 use serde::{Serialize, Serializer};
 use reqwest::Url;
 use reqwest::Body;
-use reqwest::Response as ReqwestResponse;
 
 use std::rc::Rc;
 
@@ -87,7 +86,7 @@ impl Paper {
     pub fn download(&self,
                     doc_id: &str,
                     export_format: ExportFormat)
-                    -> Result<ContentResponse<PaperDocExportResult, ReqwestResponse>> {
+                    -> Result<ContentResponse<PaperDocExportResult>> {
         let url = Url::parse(BASE_URL)?
             .join("download")?;
         let resp_w_err = self.content_download(url,

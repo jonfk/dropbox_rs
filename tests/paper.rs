@@ -27,13 +27,12 @@ fn test_paper_create_download_archive_delete() {
 
     let (PaperDocCreateUpdateResult { doc_id, .. }, new_uuid) = create_rand_doc(&client);
 
-    let download_resp = client.paper()
+    let mut download_resp = client.paper()
         .download(&doc_id, ExportFormat::Markdown)
         .expect("error downloading paper doc");
 
     let mut downloaded_doc = String::new();
-    let mut contents = download_resp.content;
-    contents.read_to_string(&mut downloaded_doc)
+    download_resp.read_to_string(&mut downloaded_doc)
         .expect("error read downloaded content");
 
     assert!(downloaded_doc.contains(&format!("Test Paper Create {}", new_uuid)));
@@ -139,13 +138,12 @@ fn test_update() {
                 update_content.clone())
         .expect("error updating doc");
 
-    let download_resp = client.paper()
+    let mut download_resp = client.paper()
         .download(&doc_id, ExportFormat::Markdown)
         .expect("error downloading paper doc");
 
     let mut downloaded_doc = String::new();
-    let mut contents = download_resp.content;
-    contents.read_to_string(&mut downloaded_doc)
+    download_resp.read_to_string(&mut downloaded_doc)
         .expect("error read downloaded content");
 
     assert!(downloaded_doc.contains(&update_content));

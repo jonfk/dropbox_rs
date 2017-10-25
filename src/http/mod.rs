@@ -1,5 +1,6 @@
 
-use std::io::Read;
+use std::io::{self, Read};
+use std::fmt;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use serde_json;
@@ -28,12 +29,29 @@ pub struct Response<T> {
     pub headers: Headers,
 }
 
-#[derive(Debug)]
-pub struct ContentResponse<T, C: Read> {
+pub struct ContentResponse<T> {
     pub body: T,
-    pub content: C,
+    content: Box<Read>,
     pub status: StatusCode,
     pub headers: Headers,
+}
+
+impl<T> fmt::Debug for ContentResponse<T>
+    where T: fmt::Debug
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,
+               "ContentResponse {{ body: {:?}, status: {:?}, headers: {:?} }}",
+               self.body,
+               self.status,
+               self.headers)
+    }
+}
+
+impl<T> Read for ContentResponse<T> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.content.read(buf)
+    }
 }
 
 #[derive(Debug)]
@@ -77,17 +95,16 @@ impl<T, E> ResponseWithErr<T, E>
 }
 
 #[derive(Debug)]
-pub enum ContentResponseWithErr<T, C: Read, E> {
-    Ok(ContentResponse<T, C>),
+pub enum ContentResponseWithErr<T, E> {
+    Ok(ContentResponse<T>),
     Err(APIError<E>),
 }
 
-impl<T, E> ContentResponseWithErr<T, ReqwestResponse, E>
+impl<T, E> ContentResponseWithErr<T, E>
     where T: DeserializeOwned,
           E: DeserializeOwned
 {
-    pub fn try_from(mut resp: ReqwestResponse)
-                    -> Result<ContentResponseWithErr<T, ReqwestResponse, E>> {
+    pub fn try_from(mut resp: ReqwestResponse) -> Result<ContentResponseWithErr<T, E>> {
         let status = resp.status();
         let headers = resp.headers().clone();
 
@@ -100,7 +117,7 @@ impl<T, E> ContentResponseWithErr<T, ReqwestResponse, E>
             //info!("[response_body = {}]", body);
             Ok(ContentResponseWithErr::Ok(ContentResponse {
                 body: body,
-                content: resp,
+                content: Box::new(resp),
                 status: status,
                 headers: headers.clone(),
             }))
@@ -201,7 +218,7 @@ pub trait ContentDownloadClient<C: Read> {
     fn content_download<T, R, E>(&self,
                                  url: Url,
                                  request: T)
-                                 -> Result<ContentResponseWithErr<R, C, E>>
+                                 -> Result<ContentResponseWithErr<R, E>>
         where T: Serialize,
               R: DeserializeOwned,
               C: Read,
@@ -215,7 +232,7 @@ impl<C> ContentDownloadClient<ReqwestResponse> for C
     fn content_download<T, R, E>(&self,
                                  url: Url,
                                  request: T)
-                                 -> Result<ContentResponseWithErr<R, ReqwestResponse, E>>
+                                 -> Result<ContentResponseWithErr<R, E>>
         where T: Serialize,
               R: DeserializeOwned,
               E: DeserializeOwned
